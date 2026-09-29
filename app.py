@@ -113,6 +113,7 @@ def ir(estado):
 st.set_page_config(page_title="Simulador DEA", page_icon="⚡", layout="centered")
 init()
 
+# CSS con forzado de contraste para solucionar textos invisibles y bloques HTML rotos
 st.markdown('''<style>
 [data-testid="stHeader"], [data-testid="stToolbar"] {display:none}
 .stApp{background:#eee;color:#111}
@@ -121,32 +122,53 @@ st.markdown('''<style>
 .speaker{width: 90px; height: 5px; border-radius: 5px; background: #111;margin: 2px auto 10px}
 .note{text-align:center;color:#666; font:10px Arial;letter-spacing:1px; margin-bottom:8px}
 .screen{position:relative; min-height: 390px; border:2px solid #111; border-radius: 18px; display: flex; flex-direction:column; align-items:center; justify-content: center; text-align:center;padding: 18px; margin-bottom: 12px}
-.brand{position:absolute; top: 13px; font:800 20px Arial}
+.brand{position:absolute; top: 13px; font:800 20px Arial; color:#111}
 .brand span{color:#c52828; font-size:25px}
-.screen h1{font:800 28px/1 Arial; margin:8px 0; text-transform:uppercase}
-.screen h2{font:700 18px/1.2 Arial; margin:5px 0; white-space: pre-line}
+.screen h1{font:800 28px/1 Arial; margin:8px 0; text-transform:uppercase; color:#111}
+.screen h2{font:700 18px/1.2 Arial; margin:5px 0; white-space: pre-line; color:#111}
+
+/* BOTONES */
 .stButton>button,.stDownloadButton>button{width:100%; min-height:52px; border:2px solid #111!important; border-radius: 5px!important; background:#fff!important;color:#111!important; font: 800 19px Arial!important;text-transform:uppercase}
 .stButton>button[kind="primary"]{background:#111!important;color:#fff!important}
 .st-key-power button{width:100px!important; height: 100px!important;min-height: 100px!important; border-radius: 50%!important;margin:18px auto!important; display:block!important; font-size: 0px!important;}
 .st-key-shock button{height: 165px!important;border-radius: 85px!important; font-size: 0px!important;}
+
+/* ELEMENTOS GRÁFICOS */
 .art svg{width: 185px;height:215px; margin-top: 10px}
 .ecg-art svg{width:100%;height: 130px; margin-top:10px}
-.info{border:1.5px solid #111;padding:11px; border-radius:5px; margin:7px 0;font: 13px/1.4 Arial}
+.info{border:1.5px solid #111;padding:11px; border-radius:5px; margin:7px 0;font: 13px/1.4 Arial; color:#111}
 .info b{display:block; text-transform:uppercase; margin-bottom:4px}
-.event{width: 100%; border-collapse:collapse; font:12px Arial}
+.event{width: 100%; border-collapse:collapse; font:12px Arial; color:#111}
 .event td{border:1.4px solid #111;padding:7px 11px}
 .event td:first-child{font-weight:bold; text-transform:uppercase; width: 45%}
-div[data-baseweb="select"]>div{border:2px solid #111;min-height: 48px}
-.parameter{font:bold 12px Arial; text-transform:uppercase; margin:9px 0 3px}
-.warning{font:11px/1.4 Arial; background:#fff2d9;border:1px solid #c78217; padding: 9px; border-radius: 5px; margin:8px 0}
-.ok{font:12px/1.4 Arial;background:#e8f7ef; border: 1px solid #25814f;padding:9px;border-radius: 5px; margin:8px 0}
+.parameter{font:bold 12px Arial; text-transform:uppercase; margin:9px 0 3px; color:#111}
+.warning{font:11px/1.4 Arial; background:#fff2d9;border:1px solid #c78217; padding: 9px; border-radius: 5px; margin:8px 0; color:#111}
+.ok{font:12px/1.4 Arial;background:#e8f7ef; border: 1px solid #25814f;padding:9px;border-radius: 5px; margin:8px 0; color:#111}
+
+/* CORRECCIÓN DE CONTRASTE EN FORMULARIOS Y ETIQUETAS */
+label, p, span, div[data-testid="stWidgetLabel"] p {
+    color: #111111 !important;
+    font-weight: bold !important;
+}
+div[data-baseweb="select"] > div {
+    border: 2px solid #111 !important;
+    min-height: 48px;
+    background-color: #ffffff !important;
+    color: #111111 !important;
+}
+div[data-baseweb="select"] span {
+    color: #111111 !important;
+}
+div[role="listbox"] div {
+    color: #111111 !important;
+}
+
 @media (max-width: 480px) {
     .block-container{padding:0}
     .phone{border:0;border-radius:0;box-shadow: none; min-height:100vh}
 }
 </style>''', unsafe_allow_html=True)
 
-# Aplica la imagen de fondo en el botón mediante CSS URI
 img_encendido = uri('boton_encendido.svg')
 img_descarga = uri('corazon_descarga.svg')
 
