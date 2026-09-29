@@ -10,9 +10,11 @@ import random
 import time
 import streamlit as st
 
-ASSETS = Path(__file__).parent / "assets"
+# Los archivos SVG están en la misma carpeta que app.py (raíz)
+ASSETS = Path(__file__).parent 
 BD_PATH = Path(__file__).parent / "historial_simulaciones.json"
 
+# Nombres ajustados exactamente a los archivos de tu repositorio
 RITMOS = {
     "Fibrilación ventricular": {"svg": "ecg_fibrilacion_ventricular.svg", "descarga": True},
     "Taquicardia ventricular sin pulso": {"svg": "ecg_taquicardia_ventricular.svg", "descarga": True},
@@ -21,7 +23,7 @@ RITMOS = {
     "Ritmo sinusal": {"svg": "senal_ecg.svg", "descarga": False},
     "Bradicardia sinusal": {"svg": "ecg_bradicardia.svg", "descarga": False},
     "Taquicardia sinusal con pulso": {"svg": "ecg_taquicardia_sinusal.svg", "descarga": False},
-    "Extrasístoles": {"svg": "ecg_extrasistole.svg", "descarga": False},
+    "Extrasístoles": {"svg": "ecg_etrasistole.svg", "descarga": False}, # Corregido al nombre de tu archivo
 }
 
 CASOS = {
@@ -94,7 +96,7 @@ def svg(nombre, clase="art"):
     archivo = ASSETS / nombre
     if archivo.exists():
         return f'<div class="{clase}">{archivo.read_text(encoding="utf-8")}</div>'
-    return f'<div class="{clase}">[SVG: {nombre}]</div>'
+    return f'<div class="{clase}">[SVG no encontrado: {nombre}]</div>'
 
 def uri(nombre):
     archivo = ASSETS / nombre
@@ -113,7 +115,7 @@ def ir(estado):
 st.set_page_config(page_title="Simulador DEA", page_icon="⚡", layout="centered")
 init()
 
-# CSS con forzado de contraste para solucionar textos invisibles y bloques HTML rotos
+# CSS corregido para botones claros/oscuros y contraste garantizado
 st.markdown('''<style>
 [data-testid="stHeader"], [data-testid="stToolbar"] {display:none}
 .stApp{background:#eee;color:#111}
@@ -127,11 +129,39 @@ st.markdown('''<style>
 .screen h1{font:800 28px/1 Arial; margin:8px 0; text-transform:uppercase; color:#111}
 .screen h2{font:700 18px/1.2 Arial; margin:5px 0; white-space: pre-line; color:#111}
 
-/* BOTONES */
-.stButton>button,.stDownloadButton>button{width:100%; min-height:52px; border:2px solid #111!important; border-radius: 5px!important; background:#fff!important;color:#111!important; font: 800 19px Arial!important;text-transform:uppercase}
-.stButton>button[kind="primary"]{background:#111!important;color:#fff!important}
-.st-key-power button{width:100px!important; height: 100px!important;min-height: 100px!important; border-radius: 50%!important;margin:18px auto!important; display:block!important; font-size: 0px!important;}
-.st-key-shock button{height: 165px!important;border-radius: 85px!important; font-size: 0px!important;}
+/* BOTONES DE STREAMLIT CORREGIDOS */
+.stButton>button, .stDownloadButton>button {
+    width: 100% !important;
+    min-height: 52px !important;
+    border: 2px solid #111 !important;
+    border-radius: 5px !important;
+    background-color: #ffffff !important;
+    color: #111111 !important;
+    font: 800 19px Arial !important;
+    text-transform: uppercase !important;
+}
+
+/* Botones principales/destacados con texto blanco legible */
+.stButton>button[kind="primary"] {
+    background-color: #111111 !important;
+    color: #ffffff !important;
+}
+
+.st-key-power button {
+    width: 100px !important;
+    height: 100px !important;
+    min-height: 100px !important;
+    border-radius: 50% !important;
+    margin: 18px auto !important;
+    display: block !important;
+    font-size: 0px !important;
+}
+
+.st-key-shock button {
+    height: 165px !important;
+    border-radius: 85px !important;
+    font-size: 0px !important;
+}
 
 /* ELEMENTOS GRÁFICOS */
 .art svg{width: 185px;height:215px; margin-top: 10px}
@@ -145,7 +175,7 @@ st.markdown('''<style>
 .warning{font:11px/1.4 Arial; background:#fff2d9;border:1px solid #c78217; padding: 9px; border-radius: 5px; margin:8px 0; color:#111}
 .ok{font:12px/1.4 Arial;background:#e8f7ef; border: 1px solid #25814f;padding:9px;border-radius: 5px; margin:8px 0; color:#111}
 
-/* CORRECCIÓN DE CONTRASTE EN FORMULARIOS Y ETIQUETAS */
+/* ETIQUETAS Y SELECCIONABLES EN FORMAS */
 label, p, span, div[data-testid="stWidgetLabel"] p {
     color: #111111 !important;
     font-weight: bold !important;
