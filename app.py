@@ -103,12 +103,12 @@ def uri(nombre):
     return ""
 
 def screen(title="", subtitle="", art=""):
-    st.markdown(f'''<section class="screen">
+    st.markdown(f'''<div class="screen">
         <div class="brand">DESFIBRILAD<span>⚡</span>R</div>
         <h1>{title}</h1>
         <h2>{subtitle}</h2>
         {art}
-    </section>''', unsafe_allow_html=True)
+    </div>''', unsafe_allow_html=True)
 
 def ir(estado):
     st.session_state.estado = estado
@@ -148,12 +148,14 @@ div[data-baseweb="select"]>div{border:2px solid #111;min-height: 48px}
     .block-container{padding:0}
     .phone{border:0;border-radius:0;box-shadow: none; min-height:100vh}
 }
-</style><div class="phone"><div class="speaker"></div><div class="note">SIMULACIÓN EDUCATIVA - NO ES UN EQUIPO MÉDICO</div>''', unsafe_allow_html=True)
+</style>''', unsafe_allow_html=True)
 
 st.markdown(f'''<style>
 .st-key-power button{{background:#fff url("{uri('boton_encendido.svg')}") center/82px no-repeat!important;color:transparent!important}}
 .st-key-shock button{{background:#fff url("{uri('corazon_descarga.svg')}") center/155px no-repeat!important;color: transparent!important;border:0!important}}
 </style>''', unsafe_allow_html=True)
+
+st.markdown('<div class="phone"><div class="speaker"></div><div class="note">SIMULACIÓN EDUCATIVA - NO ES UN EQUIPO MÉDICO</div>', unsafe_allow_html=True)
 
 e = st.session_state.estado
 
