@@ -103,12 +103,8 @@ def uri(nombre):
     return ""
 
 def screen(title="", subtitle="", art=""):
-    st.markdown(f'''<div class="screen">
-        <div class="brand">DESFIBRILAD<span>⚡</span>R</div>
-        <h1>{title}</h1>
-        <h2>{subtitle}</h2>
-        {art}
-    </div>''', unsafe_allow_html=True)
+    html_content = f'<div class="screen"><div class="brand">DESFIBRILAD<span>⚡</span>R</div><h1>{title}</h1><h2>{subtitle}</h2>{art}</div>'
+    st.markdown(html_content, unsafe_allow_html=True)
 
 def ir(estado):
     st.session_state.estado = estado
@@ -131,8 +127,8 @@ st.markdown('''<style>
 .screen h2{font:700 18px/1.2 Arial; margin:5px 0; white-space: pre-line}
 .stButton>button,.stDownloadButton>button{width:100%; min-height:52px; border:2px solid #111!important; border-radius: 5px!important; background:#fff!important;color:#111!important; font: 800 19px Arial!important;text-transform:uppercase}
 .stButton>button[kind="primary"]{background:#111!important;color:#fff!important}
-.st-key-power button{width:100px!important; height: 100px!important;min-height: 100px!important; border-radius: 50%!important;margin:18px auto!important; display:block!important}
-.st-key-shock button{height: 165px!important;border-radius: 85px!important}
+.st-key-power button{width:100px!important; height: 100px!important;min-height: 100px!important; border-radius: 50%!important;margin:18px auto!important; display:block!important; font-size: 0px!important;}
+.st-key-shock button{height: 165px!important;border-radius: 85px!important; font-size: 0px!important;}
 .art svg{width: 185px;height:215px; margin-top: 10px}
 .ecg-art svg{width:100%;height: 130px; margin-top:10px}
 .info{border:1.5px solid #111;padding:11px; border-radius:5px; margin:7px 0;font: 13px/1.4 Arial}
@@ -150,9 +146,26 @@ div[data-baseweb="select"]>div{border:2px solid #111;min-height: 48px}
 }
 </style>''', unsafe_allow_html=True)
 
+# Aplica la imagen de fondo en el botón mediante CSS URI
+img_encendido = uri('boton_encendido.svg')
+img_descarga = uri('corazon_descarga.svg')
+
 st.markdown(f'''<style>
-.st-key-power button{{background:#fff url("{uri('boton_encendido.svg')}") center/82px no-repeat!important;color:transparent!important}}
-.st-key-shock button{{background:#fff url("{uri('corazon_descarga.svg')}") center/155px no-repeat!important;color: transparent!important;border:0!important}}
+.st-key-power button {{
+    background-color: #fff !important;
+    background-image: url("{img_encendido}") !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+    background-size: 70px 70px !important;
+}}
+.st-key-shock button {{
+    background-color: #fff !important;
+    background-image: url("{img_descarga}") !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+    background-size: 140px 140px !important;
+    border: 0 !important;
+}}
 </style>''', unsafe_allow_html=True)
 
 st.markdown('<div class="phone"><div class="speaker"></div><div class="note">SIMULACIÓN EDUCATIVA - NO ES UN EQUIPO MÉDICO</div>', unsafe_allow_html=True)
@@ -163,7 +176,7 @@ e = st.session_state.estado
 
 if e == "APAGADO":
     screen("DESFIBRILADOR", "Pulse el botón para encender")
-    if st.button("Encender", key="power"):
+    if st.button("🔴", key="power"):
         st.session_state.inicio = datetime.now()
         log("Simulador encendido")
         ir("MENU")
@@ -267,7 +280,6 @@ elif e == "ANALIZANDO":
         st.session_state.resultado = "No aplica: ritmo no desfibrilable"
         st.session_state.fin = datetime.now()
         
-        # Registrar en la base de datos local JSON
         guardar_en_bd({
             "fecha": st.session_state.fin.strftime("%Y-%m-%d %H:%M:%S"),
             "ritmo": st.session_state.ritmo,
@@ -288,7 +300,7 @@ elif e == "NO_DESCARGA":
 
 elif e == "DESCARGAR":
     screen("DESCARGUE", "Oprima el corazón con el rayo")
-    if st.button("Aplicar descarga virtual", key="shock"):
+    if st.button("⚡", key="shock"):
         st.session_state.descargas += 1
         st.session_state.energia += 200
         choice = st.session_state.desenlace
@@ -297,7 +309,6 @@ elif e == "DESCARGAR":
         st.session_state.fin = datetime.now()
         log(f"Descarga virtual 200 J: {st.session_state.resultado}")
         
-        # Registrar en la base de datos local JSON
         guardar_en_bd({
             "fecha": st.session_state.fin.strftime("%Y-%m-%d %H:%M:%S"),
             "ritmo": st.session_state.ritmo,
