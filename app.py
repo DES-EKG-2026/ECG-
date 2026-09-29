@@ -14,7 +14,7 @@ import streamlit as st
 ASSETS = Path(__file__).parent 
 BD_PATH = Path(__file__).parent / "historial_simulaciones.json"
 
-# Nombres ajustados exactamente a los archivos de tu repositorio
+# Nombres ajustados exactamente a los archivos del repositorio
 RITMOS = {
     "Fibrilación ventricular": {"svg": "ecg_fibrilacion_ventricular.svg", "descarga": True},
     "Taquicardia ventricular sin pulso": {"svg": "ecg_taquicardia_ventricular.svg", "descarga": True},
@@ -23,7 +23,7 @@ RITMOS = {
     "Ritmo sinusal": {"svg": "senal_ecg.svg", "descarga": False},
     "Bradicardia sinusal": {"svg": "ecg_bradicardia.svg", "descarga": False},
     "Taquicardia sinusal con pulso": {"svg": "ecg_taquicardia_sinusal.svg", "descarga": False},
-    "Extrasístoles": {"svg": "ecg_etrasistole.svg", "descarga": False}, # Corregido al nombre de tu archivo
+    "Extrasístoles": {"svg": "ecg_etrasistole.svg", "descarga": False},
 }
 
 CASOS = {
@@ -115,7 +115,7 @@ def ir(estado):
 st.set_page_config(page_title="Simulador DEA", page_icon="⚡", layout="centered")
 init()
 
-# CSS corregido para botones claros/oscuros y contraste garantizado
+# CSS con forzado estricto de colores y jerarquías de contraste
 st.markdown('''<style>
 [data-testid="stHeader"], [data-testid="stToolbar"] {display:none}
 .stApp{background:#eee;color:#111}
@@ -129,11 +129,11 @@ st.markdown('''<style>
 .screen h1{font:800 28px/1 Arial; margin:8px 0; text-transform:uppercase; color:#111}
 .screen h2{font:700 18px/1.2 Arial; margin:5px 0; white-space: pre-line; color:#111}
 
-/* BOTONES DE STREAMLIT CORREGIDOS */
+/* BOTONES NORMALES (FONDO BLANCO - TEXTO NEGRO) */
 .stButton>button, .stDownloadButton>button {
     width: 100% !important;
     min-height: 52px !important;
-    border: 2px solid #111 !important;
+    border: 2px solid #111111 !important;
     border-radius: 5px !important;
     background-color: #ffffff !important;
     color: #111111 !important;
@@ -141,9 +141,19 @@ st.markdown('''<style>
     text-transform: uppercase !important;
 }
 
-/* Botones principales/destacados con texto blanco legible */
+.stButton>button p, .stDownloadButton>button p {
+    color: #111111 !important;
+}
+
+/* BOTONES PRIMARIOS (FONDO NEGRO - TEXTO BLANCO) */
 .stButton>button[kind="primary"] {
     background-color: #111111 !important;
+    color: #ffffff !important;
+}
+
+.stButton>button[kind="primary"] p, 
+.stButton>button[kind="primary"] span, 
+.stButton>button[kind="primary"] div {
     color: #ffffff !important;
 }
 
@@ -175,21 +185,20 @@ st.markdown('''<style>
 .warning{font:11px/1.4 Arial; background:#fff2d9;border:1px solid #c78217; padding: 9px; border-radius: 5px; margin:8px 0; color:#111}
 .ok{font:12px/1.4 Arial;background:#e8f7ef; border: 1px solid #25814f;padding:9px;border-radius: 5px; margin:8px 0; color:#111}
 
-/* ETIQUETAS Y SELECCIONABLES EN FORMAS */
-label, p, span, div[data-testid="stWidgetLabel"] p {
+/* CONTRASTE EN FORMULARIOS Y ETIQUETAS */
+label, div[data-testid="stWidgetLabel"] p {
     color: #111111 !important;
     font-weight: bold !important;
 }
+
 div[data-baseweb="select"] > div {
     border: 2px solid #111 !important;
     min-height: 48px;
     background-color: #ffffff !important;
     color: #111111 !important;
 }
-div[data-baseweb="select"] span {
-    color: #111111 !important;
-}
-div[role="listbox"] div {
+
+div[data-baseweb="select"] span, div[role="listbox"] div {
     color: #111111 !important;
 }
 
