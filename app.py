@@ -146,7 +146,8 @@ def guardar_evento(evento):
 
         encoding="utf-8"
     )
-    # =====================================================
+
+# =====================================================
 # PREGUNTAS FRECUENTES
 # =====================================================
 
@@ -182,9 +183,9 @@ BASE_CONOCIMIENTO = {
     """
 Los ritmos desfibrilables son:
 
-• Fibrilación Ventricular (FV)
+- Fibrilación Ventricular (FV)
 
-• Taquicardia Ventricular sin Pulso (TVSP)
+- Taquicardia Ventricular sin Pulso (TVSP)
 
 Son los únicos ritmos que un DEA recomienda desfibrilar.
 """,
@@ -199,10 +200,10 @@ La descarga eléctrica no aporta beneficio porque no existe una actividad suscep
     "fv_tvsp":
     """
 FV:
-• Actividad completamente caótica.
+- Actividad completamente caótica.
 
 TVSP:
-• Ritmo rápido y organizado.
+- Ritmo rápido y organizado.
 
 Ambos producen ausencia de circulación efectiva.
 """,
@@ -337,14 +338,14 @@ def responder_ia(pregunta):
     return """
 Pregunte sobre:
 
-• DEA
-• FV
-• TVSP
-• AESP
-• Asistolia
-• Descargas
-• RCP
-• ROSC
+- DEA
+- FV
+- TVSP
+- AESP
+- Asistolia
+- Descargas
+- RCP
+- ROSC
 """
 
 
@@ -387,6 +388,36 @@ def init():
 
 
 init()
+
+# =====================================================
+# FUNCIONES FALTANTES AGREGADAS (Para evitar errores)
+# =====================================================
+
+def reiniciar_simulacion():
+    st.session_state.inicio = datetime.now()
+    st.session_state.fin = None
+    st.session_state.resultado = ""
+    st.session_state.descargas = 0
+    st.session_state.energia = 0
+    st.session_state.conectado = False
+    st.session_state.analizado = False
+    st.session_state.descarga_recomendada = False
+
+def icono_info():
+    st.markdown("<div style='text-align:center; font-size:40px;'>ℹ️</div>", unsafe_allow_html=True)
+
+def icono_confirmacion():
+    st.markdown("<div style='text-align:center; font-size:40px;'>✅</div>", unsafe_allow_html=True)
+
+def mostrar_paciente():
+    st.markdown("<div style='text-align:center; font-size:50px;'>🧍‍♂️</div>", unsafe_allow_html=True)
+
+def mostrar_ecg(caso):
+    if caso in RITMOS:
+        st.markdown(svg(RITMOS[caso], "ecg-art"), unsafe_allow_html=True)
+    else:
+        st.info(f"Monitor ECG: {caso}")
+
 # =====================================================
 # CSS
 # =====================================================
@@ -576,8 +607,14 @@ def logo():
 
     st.markdown(
         """
-        <div 
-        # =====================================================
+        <div class="logo">
+            <span class="bolt">⚡</span> Simulador DEA
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+# =====================================================
 # CASOS CLÍNICOS
 # =====================================================
 
@@ -994,7 +1031,9 @@ elif st.session_state.pagina == "CHAT":
         "</div>",
         unsafe_allow_html=True
     )
-    # =====================================================
+
+
+# =====================================================
 # SIMULACIÓN DEA
 # =====================================================
 
@@ -1079,9 +1118,24 @@ elif st.session_state.pagina == "SIMULACION":
         # ANALIZAR
         # ======================================
 
-        if st.button(
-            "ANALIZAR
-            # =====================================================
+        if st.button("ANALIZAR"):
+
+            st.session_state.analizado = True
+
+            if datos["desfibrilable"]:
+                st.session_state.pagina = "DESCARGA"
+            else:
+                st.session_state.resultado = "Persistencia del ritmo"
+                st.session_state.pagina = "POSTDESCARGA"
+
+            st.rerun()
+
+    st.markdown(
+        "</div>",
+        unsafe_allow_html=True
+    )
+
+# =====================================================
 # DESCARGA DEA
 # =====================================================
 
@@ -1269,7 +1323,9 @@ El DEA volverá a requerir un análisis.
         "</div>",
         unsafe_allow_html=True
     )
-    # =====================================================
+
+
+# =====================================================
 # RESUMEN
 # =====================================================
 
