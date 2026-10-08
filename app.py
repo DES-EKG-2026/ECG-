@@ -1501,7 +1501,6 @@ elif st.session_state.pagina == "ESTADISTICAS":
         unsafe_allow_html=True
     )
 
-
 # =====================================================
 # FOOTER
 # =====================================================
@@ -1520,5 +1519,4 @@ No controla dispositivos biomédicos.
 
 No sustituye entrenamiento clínico certificado.
 """
-
 )
