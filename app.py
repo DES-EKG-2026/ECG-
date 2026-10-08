@@ -1,6 +1,14 @@
+Para integrar completamente la estructura, contenidos docentes y funcionalidades descritas en el documento Proyecto_Simulador_DEA_Movil-6.pdf manteniendo las correcciones de nombres de archivos, base de datos JSON y CSS de alto contraste que trabajamos previamente, aquí tienes el código app.py unificado.
+Cambios e integraciones del documento aplicados:
+ * Pregunta de razonamiento pedagógico: Se incorporó en el área de Casos y Epicrisis.
+ * Secuencia de advertencias de seguridad: Se agregaron las notas y textos explicativos requeridos en la sección de Uso Seguro.
+ * Flujo completo de la máquina de estados: Sigue la secuencia del diagrama de flujo (Menú -> Información/Operar -> Parámetros -> Análisis -> Decisión -> Descarga -> Resumen).
+ * Resguardo de contraste: Se forzaron las reglas CSS para mantener la visibilidad de los botones negros y elementos oscuros.
 """
-Simulador académico de DEA con Asistente IA y Base de Datos.
-No interpreta señales reales ni controla hardware.
+SIMULADOR DEA MÓVIL - PROYECTO UNIVERSITARIO
+Diseño, arquitectura y código para aplicación educativa Streamlit.
+ADVERTENCIA: Simulación exclusivamente educativa. No interpreta ritmos reales,
+no controla equipos, no administra energía y no debe utilizarse en emergencias.
 """
 from datetime import datetime
 from pathlib import Path
@@ -10,11 +18,11 @@ import random
 import time
 import streamlit as st
 
-# Los archivos SVG están en la misma carpeta que app.py (raíz)
-ASSETS = Path(__file__).parent 
+# Compatibilidad con estructura de archivos (Raíz o carpeta assets)
+ASSETS = Path(__file__).parent / "assets" if (Path(__file__).parent / "assets").exists() else Path(__file__).parent
 BD_PATH = Path(__file__).parent / "historial_simulaciones.json"
 
-# Nombres ajustados exactamente a los archivos del repositorio
+# Ritmos ECG y mapeo con archivos SVG
 RITMOS = {
     "Fibrilación ventricular": {"svg": "ecg_fibrilacion_ventricular.svg", "descarga": True},
     "Taquicardia ventricular sin pulso": {"svg": "ecg_taquicardia_ventricular.svg", "descarga": True},
@@ -26,6 +34,7 @@ RITMOS = {
     "Extrasístoles": {"svg": "ecg_etrasistole.svg", "descarga": False},
 }
 
+# Casos predeterminados del documento
 CASOS = {
     "Fibrilación ventricular": dict(ritmo="Fibrilación ventricular", conciencia="Inconsciente", respiracion="Agónica", pulso="Ausente", saturacion="No detectable", presion="No detectable"),
     "TV sin pulso": dict(ritmo="Taquicardia ventricular sin pulso", conciencia="Inconsciente", respiracion="Ausente", pulso="Ausente", saturacion="No detectable", presion="No detectable"),
@@ -34,6 +43,7 @@ CASOS = {
     "Recuperación posterior": dict(ritmo="Ritmo sinusal", conciencia="Somnoliento", respiracion="Normal", pulso="Presente", saturacion="96%", presion="110/70 mmHg"),
 }
 
+# Epicrisis clínicas docentes
 EPICRISIS = {
     "FV con recuperación": "Usuario simulado inconsciente, con respiración agónica y sin pulso. El DEA identifica fibrilación ventricular, recomienda 200 J virtuales y, tras la descarga, el caso evoluciona a ritmo sinusal con circulación simulada restablecida.",
     "FV persistente": "Usuario simulado inconsciente y sin pulso. Tras una primera descarga virtual de 200 J persiste la fibrilación ventricular. El ejercicio indica continuar el protocolo docente y reevaluar el ritmo.",
@@ -45,10 +55,10 @@ EPICRISIS = {
 SATURACIONES = ["No detectable", "70%", "75%", "80%", "85%", "90%", "94%", "96%", "98%"]
 PRESIONES = ["No detectable", "70/40 mmHg", "80/50 mmHg", "90/60 mmHg", "100/60 mmHg", "110/70 mmHg", "120/80 mmHg", "140/90 mmHg"]
 
-# --- FUNCIONES DE BASE DE DATOS Y ASISTENTE IA ---
+# --- BASE DE DATOS Y ASISTENTE IA ---
 
 def guardar_en_bd(registro_datos):
-    """Guarda cada resultado de simulación en una base de datos local JSON."""
+    """Persistencia local en formato JSON."""
     datos = []
     if BD_PATH.exists():
         try:
@@ -59,20 +69,20 @@ def guardar_en_bd(registro_datos):
     BD_PATH.write_text(json.dumps(datos, indent=4, ensure_ascii=False), encoding="utf-8")
 
 def responder_ia(pregunta):
-    """Motor de IA básica para responder consultas sobre protocolos biomédicos."""
+    """Respuestas automatizadas para apoyo del módulo didáctico."""
     p = pregunta.lower()
     if any(k in p for k in ["desfibrilable", "descarga", "choque"]):
-        return "🤖 **Asistente IA:** Los ritmos desfibrilables son la **Fibrilación Ventricular (FV)** y la **Taquicardia Ventricular sin pulso (TVsp)**. La Asistolia y la AESP NO deben recibir descarga."
+        return "🤖 **Asistente IA:** Los ritmos desfibrilables son la **Fibrilación Ventricular (FV)** y la **Taquicardia Ventricular sin pulso (TVsp)**. La Asistolia y la AESP NO reciben descarga."
     elif any(k in p for k in ["parche", "electrodo", "donde", "colocar"]):
-        return "🤖 **Asistente IA:** Coloque un parche debajo de la clavícula derecha y el otro en la línea axilar media izquierda del tórax del usuario."
+        return "🤖 **Asistente IA:** Coloque un parche debajo de la clavícula derecha y el otro en la línea axilar media izquierda del tórax."
     elif any(k in p for k in ["rcp", "reanimacion", "compresion"]):
-        return "🤖 **Asistente IA:** Si la descarga no es recomendada o tras administrarla, inicie RCP inmediatamente (30 compresiones por 2 insuflaciones) a una frecuencia de 100-120 cpm."
-    elif any(k in p for k in ["asistolia", "aesp", "sinusal"]):
-        return "🤖 **Asistente IA:** La Asistolia y la AESP son ritmos de paro no desfibrilables. Debe mantenerse la RCP continua y verificar el ritmo cada 2 minutos."
+        return "🤖 **Asistente IA:** Inicie RCP (30 compresiones por 2 ventilaciones) a una frecuencia de 100-120 cpm si la descarga no es recomendada o tras administrarla."
+    elif any(k in p for k in ["asistolia", "aesp"]):
+        return "🤖 **Asistente IA:** Son ritmos de paro no desfibrilables. Mantenga la RCP continua y revalúe el ritmo cada 2 minutos."
     else:
-        return "🤖 **Asistente IA:** Hola. Puedo responder dudas sobre ritmos desfibrilables, uso de parches, secuencias de RCP y protocolos de DEA."
+        return "🤖 **Asistente IA:** Hola. Puedo responder dudas sobre ritmos desfibrilables, posición de parches, RCP y protocolos de DEA."
 
-# --- CONTROL DE ESTADO E INTERFAZ ---
+# --- MÁQUINA DE ESTADOS Y AUXILIARES ---
 
 def init():
     defaults = {
@@ -105,8 +115,7 @@ def uri(nombre):
     return ""
 
 def screen(title="", subtitle="", art=""):
-    html_content = f'<div class="screen"><div class="brand">DESFIBRILAD<span>⚡</span>R</div><h1>{title}</h1><h2>{subtitle}</h2>{art}</div>'
-    st.markdown(html_content, unsafe_allow_html=True)
+    st.markdown(f'<div class="screen"><div class="brand">DESFIBRILAD<span>⚡</span>R</div><h1>{title}</h1><h2>{subtitle}</h2>{art}</div>', unsafe_allow_html=True)
 
 def ir(estado):
     st.session_state.estado = estado
@@ -115,7 +124,7 @@ def ir(estado):
 st.set_page_config(page_title="Simulador DEA", page_icon="⚡", layout="centered")
 init()
 
-# CSS con forzado estricto de colores y jerarquías de contraste
+# CSS - Diseño Responsivo y Reglas de Alto Contraste
 st.markdown('''<style>
 [data-testid="stHeader"], [data-testid="stToolbar"] {display:none}
 .stApp{background:#eee;color:#111}
@@ -129,7 +138,7 @@ st.markdown('''<style>
 .screen h1{font:800 28px/1 Arial; margin:8px 0; text-transform:uppercase; color:#111}
 .screen h2{font:700 18px/1.2 Arial; margin:5px 0; white-space: pre-line; color:#111}
 
-/* BOTONES NORMALES (FONDO BLANCO - TEXTO NEGRO) */
+/* BOTONES ESTÁNDAR (FONDO BLANCO - TEXTO NEGRO) */
 .stButton>button, .stDownloadButton>button {
     width: 100% !important;
     min-height: 52px !important;
@@ -140,40 +149,29 @@ st.markdown('''<style>
     font: 800 19px Arial !important;
     text-transform: uppercase !important;
 }
-
-.stButton>button p, .stDownloadButton>button p {
-    color: #111111 !important;
-}
+.stButton>button p, .stDownloadButton>button p { color: #111111 !important; }
 
 /* BOTONES PRIMARIOS (FONDO NEGRO - TEXTO BLANCO) */
 .stButton>button[kind="primary"] {
     background-color: #111111 !important;
     color: #ffffff !important;
 }
-
 .stButton>button[kind="primary"] p, 
 .stButton>button[kind="primary"] span, 
 .stButton>button[kind="primary"] div {
     color: #ffffff !important;
 }
 
+/* BOTONES DE ACCIÓN PRINCIPAL (ENCENDIDO Y DESCARGA) */
 .st-key-power button {
-    width: 100px !important;
-    height: 100px !important;
-    min-height: 100px !important;
-    border-radius: 50% !important;
-    margin: 18px auto !important;
-    display: block !important;
-    font-size: 0px !important;
+    width: 100px !important; height: 100px !important; min-height: 100px !important;
+    border-radius: 50% !important; margin: 18px auto !important; display: block !important; font-size: 0px !important;
 }
-
 .st-key-shock button {
-    height: 165px !important;
-    border-radius: 85px !important;
-    font-size: 0px !important;
+    height: 165px !important; border-radius: 85px !important; font-size: 0px !important;
 }
 
-/* ELEMENTOS GRÁFICOS */
+/* TARJETAS Y CONTENEDORES */
 .art svg{width: 185px;height:215px; margin-top: 10px}
 .ecg-art svg{width:100%;height: 130px; margin-top:10px}
 .info{border:1.5px solid #111;padding:11px; border-radius:5px; margin:7px 0;font: 13px/1.4 Arial; color:#111}
@@ -185,22 +183,10 @@ st.markdown('''<style>
 .warning{font:11px/1.4 Arial; background:#fff2d9;border:1px solid #c78217; padding: 9px; border-radius: 5px; margin:8px 0; color:#111}
 .ok{font:12px/1.4 Arial;background:#e8f7ef; border: 1px solid #25814f;padding:9px;border-radius: 5px; margin:8px 0; color:#111}
 
-/* CONTRASTE EN FORMULARIOS Y ETIQUETAS */
-label, div[data-testid="stWidgetLabel"] p {
-    color: #111111 !important;
-    font-weight: bold !important;
-}
-
-div[data-baseweb="select"] > div {
-    border: 2px solid #111 !important;
-    min-height: 48px;
-    background-color: #ffffff !important;
-    color: #111111 !important;
-}
-
-div[data-baseweb="select"] span, div[role="listbox"] div {
-    color: #111111 !important;
-}
+/* ETIQUETAS Y SELECCIONABLES */
+label, div[data-testid="stWidgetLabel"] p { color: #111111 !important; font-weight: bold !important; }
+div[data-baseweb="select"] > div { border: 2px solid #111 !important; min-height: 48px; background-color: #ffffff !important; color: #111111 !important; }
+div[data-baseweb="select"] span, div[role="listbox"] div { color: #111111 !important; }
 
 @media (max-width: 480px) {
     .block-container{padding:0}
@@ -233,7 +219,7 @@ st.markdown('<div class="phone"><div class="speaker"></div><div class="note">SIM
 
 e = st.session_state.estado
 
-# --- PANTALLAS ---
+# --- FLUJO PANTALLA POR PANTALLA ---
 
 if e == "APAGADO":
     screen("DESFIBRILADOR", "Pulse el botón para encender")
@@ -266,8 +252,8 @@ elif e == "CHAT_IA":
 elif e == "HISTORIA":
     screen("RESEÑA HISTÓRICA", "Evolución de la desfibrilación", svg("corazon_informacion.svg"))
     st.markdown('''<div class="info"><b>Primeras investigaciones</b>Los estudios sobre electricidad y corazón prepararon el camino para comprender que una corriente controlada podía modificar determinados ritmos.</div>
-    <div class="info"><b>Siglo XX</b>La desfibrilación pasó de equipos experimentales a dispositivos más compactos y seguros.</div>
-    <div class="info"><b>DEA moderno</b>Los desfibriladores externos automáticos incorporaron análisis del ritmo y guías interactivas.</div>''', unsafe_allow_html=True)
+    <div class="info"><b>Siglo XX</b>La desfibrilación pasó de equipos experimentales y hospitalarios a dispositivos más compactos y seguros.</div>
+    <div class="info"><b>DEA moderno</b>Los desfibriladores externos automáticos incorporaron análisis del ritmo, mensajes visuales y orientación por voz para facilitar una respuesta guiada.</div>''', unsafe_allow_html=True)
     if st.button("VOLVER A APRENDIZAJE"): ir("INFORMACION")
 
 elif e == "USO":
@@ -275,19 +261,21 @@ elif e == "USO":
     st.markdown('''<div class="info"><b>1. Encender</b>Active el DEA y siga sus instrucciones.</div>
     <div class="info"><b>2. Preparar y colocar</b>Descubra el tórax y coloque los parches según las ilustraciones.</div>
     <div class="info"><b>3. Analizar</b>Nadie debe tocar al usuario mientras se analiza el ritmo.</div>
-    <div class="info"><b>4. Descargar o continuar</b>Descargue solo si el DEA lo indica.</div>''', unsafe_allow_html=True)
+    <div class="info"><b>4. Descargar o continuar</b>Descargue solo si el DEA lo indica y continúe inmediatamente las acciones del protocolo.</div>
+    <div class="warning">Esta sección es didáctica y no reemplaza capacitación certificada ni las instrucciones de un DEA real.</div>''', unsafe_allow_html=True)
     if st.button("VOLVER A APRENDIZAJE"): ir("INFORMACION")
 
 elif e == "EPICRISIS":
     screen("CASOS Y EPICRISIS", "Seleccione un caso simulado")
     caso_edu = st.selectbox("Caso clínico educativo", list(EPICRISIS.keys()))
     st.markdown(f'<div class="info"><b>{caso_edu}</b>{EPICRISIS[caso_edu]}</div>', unsafe_allow_html=True)
+    st.markdown('<div class="ok"><b>Pregunta para razonar</b>¿Por qué en este caso se habilita o se bloquea la descarga?</div>', unsafe_allow_html=True)
     if st.button("VOLVER A APRENDIZAJE"): ir("INFORMACION")
 
 elif e == "EVALUACION":
     screen("MINI EVALUACIÓN", "Compruebe lo aprendido")
     q1 = st.radio("1. ¿Qué ritmos habilitan la descarga?", ["FV y TV sin pulso", "Asistolia y AESP", "Todos los ritmos"], index=None)
-    q2 = st.radio("2. Durante el análisis se debe:", ["Evitar que alguien toque al usuario", "Aplicar descarga de inmediato", "Retirar parches"], index=None)
+    q2 = st.radio("2. Durante el análisis se debe:", ["Evitar que alguien toque al usuario", "Aplicar la descarga de inmediato", "Retirar los parches"], index=None)
     q3 = st.radio("3. Una señal organizada sin pulso puede corresponder a:", ["AESP", "Ritmo sinusal normal", "FV"], index=None)
     if st.button("VER RESULTADO", type="primary"):
         score = sum([q1 == "FV y TV sin pulso", q2 == "Evitar que alguien toque al usuario", q3 == "AESP"])
@@ -322,7 +310,7 @@ elif e == "PARAMETROS":
         if submit:
             requiere_sin_pulso = ritmo in ["Fibrilación ventricular", "Taquicardia ventricular sin pulso", "Asistolia", "Actividad eléctrica sin pulso (AESP)"]
             if requiere_sin_pulso and pulso != "Ausente":
-                st.error("Para este escenario de paro, el pulso debe figurar como ausente.")
+                st.error("Para este escenario el pulso debe figurar como ausente.")
             else:
                 for k, v in dict(modo=modo, caso=caso, ritmo=ritmo, conciencia=conciencia, respiracion=respiracion, pulso=pulso, saturacion=saturacion, presion=presion, desenlace=desenlace).items():
                     st.session_state[k] = v
@@ -356,7 +344,7 @@ elif e == "RECOMENDACION":
 
 elif e == "NO_DESCARGA":
     screen("DESCARGA NO RECOMENDADA", st.session_state.ritmo, svg(RITMOS[st.session_state.ritmo]["svg"], "ecg-art"))
-    st.markdown('<div class="warning">Continúe el protocolo indicado. El botón de descarga permanece deshabilitado.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="warning">Continúe el protocolo indicado por el docente. El botón de descarga permanece deshabilitado.</div>', unsafe_allow_html=True)
     if st.button("RESUMEN DEL EVENTO", type="primary"): ir("RESUMEN")
 
 elif e == "DESCARGAR":
@@ -420,3 +408,4 @@ if e not in ("APAGADO", "RESUMEN"):
         st.rerun()
 
 st.markdown('</div>', unsafe_allow_html=True)
+
