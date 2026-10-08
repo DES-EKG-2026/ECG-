@@ -1,9 +1,3 @@
-Para integrar completamente la estructura, contenidos docentes y funcionalidades descritas en el documento Proyecto_Simulador_DEA_Movil-6.pdf manteniendo las correcciones de nombres de archivos, base de datos JSON y CSS de alto contraste que trabajamos previamente, aquí tienes el código app.py unificado.
-Cambios e integraciones del documento aplicados:
- * Pregunta de razonamiento pedagógico: Se incorporó en el área de Casos y Epicrisis.
- * Secuencia de advertencias de seguridad: Se agregaron las notas y textos explicativos requeridos en la sección de Uso Seguro.
- * Flujo completo de la máquina de estados: Sigue la secuencia del diagrama de flujo (Menú -> Información/Operar -> Parámetros -> Análisis -> Decisión -> Descarga -> Resumen).
- * Resguardo de contraste: Se forzaron las reglas CSS para mantener la visibilidad de los botones negros y elementos oscuros.
 """
 SIMULADOR DEA MÓVIL - PROYECTO UNIVERSITARIO
 Diseño, arquitectura y código para aplicación educativa Streamlit.
@@ -408,4 +402,3 @@ if e not in ("APAGADO", "RESUMEN"):
         st.rerun()
 
 st.markdown('</div>', unsafe_allow_html=True)
-
