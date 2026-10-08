@@ -1,6 +1,7 @@
 from datetime import datetime
 from pathlib import Path
 
+import base64
 import json
 import random
 import time
@@ -14,7 +15,7 @@ except ImportError:
 
 
 # =====================================================
-# CONFIGURACIÓN GENERAL
+# CONFIGURACIÓN
 # =====================================================
 
 st.set_page_config(
@@ -23,7 +24,12 @@ st.set_page_config(
     layout="centered"
 )
 
-BD_PATH = Path("historial_simulaciones.json")
+ASSETS = Path(__file__).parent
+
+BD_PATH = (
+    Path(__file__).parent
+    / "historial_simulaciones.json"
+)
 
 if not BD_PATH.exists():
 
@@ -34,74 +40,129 @@ if not BD_PATH.exists():
 
 
 # =====================================================
+# SVG
+# =====================================================
+
+def svg(nombre, clase="art"):
+
+    archivo = ASSETS / nombre
+
+    if archivo.exists():
+
+        contenido = archivo.read_text(
+            encoding="utf-8"
+        )
+
+        return f"""
+        <div class="{clase}">
+        {contenido}
+        </div>
+        """
+
+    return f"""
+    <div class="{clase}">
+    SVG NO ENCONTRADO:
+    {nombre}
+    </div>
+    """
+
+
+def uri(nombre):
+
+    archivo = ASSETS / nombre
+
+    if archivo.exists():
+
+        return (
+            "data:image/svg+xml;base64,"
+            +
+            base64.b64encode(
+                archivo.read_bytes()
+            ).decode("ascii")
+        )
+
+    return ""
+
+
+# =====================================================
+# ECG SVG ORIGINALES
+# =====================================================
+
+RITMOS = {
+
+    "Fibrilación ventricular":
+    "ecg_fibrilacion_ventricular.svg",
+
+    "TV sin pulso":
+    "ecg_taquicardia_ventricular.svg",
+
+    "Asistolia":
+    "ecg_asistolia.svg",
+
+    "AESP":
+    "ecg_aesp.svg",
+
+    "Ritmo sinusal":
+    "senal_ecg.svg"
+}
+
+
+# =====================================================
 # BASE DE CONOCIMIENTO IA
 # =====================================================
 
 BASE_CONOCIMIENTO = {
 
     "dea": """
-Un DEA (Desfibrilador Externo Automático) es un dispositivo capaz de analizar ritmos cardíacos y determinar si una descarga puede estar indicada.
+Un DEA (Desfibrilador Externo Automático) analiza automáticamente el ritmo cardíaco para determinar si una descarga puede estar indicada.
 
 Funciones:
 
-• Analizar el ritmo cardíaco.
-• Detectar ritmos desfibrilables.
-• Guiar al operador.
-• Recomendar descarga cuando corresponda.
+• Análisis automático.
+• Identificación de ritmos desfibrilables.
+• Guía paso a paso.
+• Apoyo al operador.
 
-No sustituye el juicio clínico ni la RCP.
+No sustituye la RCP.
 """,
 
     "fv": """
-La fibrilación ventricular (FV) es una actividad eléctrica ventricular caótica.
+La fibrilación ventricular es un ritmo eléctrico caótico de los ventrículos.
 
 Características:
 
-• Ausencia de pulso.
-• Inconsciencia.
-• Paro cardiaco.
-• Ritmo desfibrilable.
+• Pulso ausente.
+• Inconsciencia rápida.
+• Paro cardíaco.
 
 Conducta:
 
-• Aplicar descarga.
-• Reanudar RCP.
-• Reevaluar posteriormente.
+• Descarga inmediata.
+• Continuar RCP.
 """,
 
     "tvsp": """
-La taquicardia ventricular sin pulso es una arritmia rápida de origen ventricular.
-
-Características:
-
-• Complejos anchos.
-• Pulso ausente.
-• Colapso circulatorio.
+La taquicardia ventricular sin pulso es una arritmia ventricular rápida sin gasto cardíaco efectivo.
 
 Es un ritmo desfibrilable.
 """,
 
     "asistolia": """
-La asistolia representa ausencia de actividad eléctrica cardíaca útil.
+La asistolia representa ausencia casi completa de actividad eléctrica ventricular.
 
-Características:
-
-• Línea plana.
-• Ausencia de circulación.
-• Ausencia de pulso.
-
-No se desfibrila.
+No debe desfibrilarse.
 """,
 
     "aesp": """
-La actividad eléctrica sin pulso (AESP) presenta actividad eléctrica organizada sin circulación efectiva.
+La actividad eléctrica sin pulso muestra actividad eléctrica organizada pero sin circulación efectiva.
 
-Características:
+No debe desfibrilarse.
+""",
 
-• ECG aparentemente organizado.
-• No existe pulso palpable.
+    "rosc": """
+ROSC significa Return Of Spontaneous Circulation.
 
-No es desfibrilable.
+Representa el retorno de la circulación espontánea.
 """,
 
     "rcp": """
@@ -109,19 +170,45 @@ La RCP debe realizarse a:
 
 • 100 a 120 compresiones por minuto.
 • Profundidad de 5 a 6 cm.
-• Mínimas interrupciones.
-
-Es fundamental tras el análisis o la descarga.
+• Interrupciones mínimas.
 """,
 
-    "rosc": """
-ROSC significa Return Of Spontaneous Circulation.
+    "parches": """
+Posición de los parches DEA:
 
-Representa:
+• Debajo de la clavícula derecha.
+• Línea axilar media izquierda.
+""",
 
-• Recuperación del pulso.
-• Recuperación de la presión arterial.
-• Retorno de la circulación espontánea.
+    "energia": """
+La mayoría de DEA modernos utilizan descargas bifásicas.
+
+En esta simulación se utilizan 200 J virtuales.
+""",
+
+    "acls": """
+ACLS significa Advanced Cardiovascular Life Support.
+
+Es el soporte vital cardiovascular avanzado.
+""",
+
+    "adrenalina": """
+La adrenalina se utiliza dentro de protocolos avanzados de reanimación cardiopulmonar.
+""",
+
+    "ecg": """
+Un ECG registra la actividad eléctrica cardíaca y permite reconocer múltiples ritmos.
+""",
+
+    "causas": """
+Las causas reversibles del paro incluyen:
+
+• Hipoxia
+• Hipovolemia
+• Hipo/Hipercaliemia
+• Taponamiento cardíaco
+• Tromboembolismo
+• Neumotórax a tensión
 """
 }
 
@@ -132,115 +219,139 @@ Representa:
 
 TOPICOS = {
 
-    "dea": [
+    "dea":[
         "dea",
         "desa",
         "desfibrilador"
     ],
 
-    "fv": [
+    "fv":[
         "fv",
         "fibrilacion ventricular",
-        "fibrilación ventricular"
+        "ritmo desfibrilable"
     ],
 
-    "tvsp": [
+    "tvsp":[
         "tv",
         "tvsp",
-        "taquicardia ventricular",
-        "tv sin pulso"
+        "tv sin pulso",
+        "taquicardia ventricular"
     ],
 
-    "asistolia": [
+    "aesp":[
+        "aesp",
+        "actividad electrica sin pulso"
+    ],
+
+    "asistolia":[
         "asistolia",
-        "línea plana",
         "linea plana"
     ],
 
-    "aesp": [
-        "aesp",
-        "actividad electrica sin pulso",
-        "actividad eléctrica sin pulso"
+    "rosc":[
+        "rosc",
+        "circulacion espontanea"
     ],
 
-    "rcp": [
+    "rcp":[
         "rcp",
         "compresiones",
-        "reanimacion",
-        "reanimación"
+        "masaje cardiaco"
     ],
 
-    "rosc": [
-        "rosc",
-        "circulacion espontanea",
-        "circulación espontánea"
+    "parches":[
+        "parche",
+        "electrodos",
+        "colocacion"
+    ],
+
+    "energia":[
+        "energia",
+        "julios",
+        "200j"
+    ],
+
+    "acls":[
+        "acls"
+    ],
+
+    "adrenalina":[
+        "adrenalina"
+    ],
+
+    "ecg":[
+        "ecg",
+        "electrocardiograma"
+    ],
+
+    "causas":[
+        "4h",
+        "4t",
+        "causas reversibles"
     ]
 }
 
 
 # =====================================================
-# MOTOR IA LOCAL
+# IA LOCAL
 # =====================================================
 
 def responder_ia(pregunta):
 
     pregunta = pregunta.lower()
 
-    if fuzz is None:
+    if fuzz:
 
-        for tema in TOPICOS:
+        mejor_tema = None
+        mejor_score = 0
 
-            if tema in pregunta:
-                return BASE_CONOCIMIENTO[tema]
+        for tema, keywords in TOPICOS.items():
 
-        return """
-Temas disponibles:
+            score = fuzz.partial_ratio(
+                pregunta,
+                " ".join(keywords)
+            )
 
-• DEA
-• FV
-• TVSP
-• AESP
-• Asistolia
-• RCP
-• ROSC
-"""
+            if score > mejor_score:
 
-    mejor_score = 0
-    mejor_tema = None
+                mejor_score = score
+                mejor_tema = tema
 
-    for tema, palabras in TOPICOS.items():
+        if mejor_score > 45:
 
-        score = fuzz.partial_ratio(
-            pregunta,
-            " ".join(palabras)
-        )
+            return BASE_CONOCIMIENTO[
+                mejor_tema
+            ]
 
-        if score > mejor_score:
+    for tema in TOPICOS:
 
-            mejor_score = score
-            mejor_tema = tema
+        if tema in pregunta:
 
-    if mejor_score > 45:
-
-        return BASE_CONOCIMIENTO[mejor_tema]
+            return BASE_CONOCIMIENTO[
+                tema
+            ]
 
     return """
-No encontré una coincidencia exacta.
-
-Pruebe con temas relacionados con:
+Puedo responder preguntas sobre:
 
 • DEA
 • FV
-• TVSP
+• TV sin pulso
 • AESP
 • Asistolia
-• RCP
 • ROSC
+• RCP
+• ACLS
+• Adrenalina
+• ECG
+• Parches
+• Energía de descarga
+• Causas reversibles del paro
 """
 
 
 # =====================================================
-# BASE DE DATOS
+# HISTORIAL
 # =====================================================
 
 def cargar_historial():
@@ -253,7 +364,7 @@ def cargar_historial():
             )
         )
 
-    except Exception:
+    except:
 
         return []
 
@@ -275,39 +386,37 @@ def guardar_evento(evento):
 
 
 # =====================================================
-# ESTADO GLOBAL
+# SESSION STATE
 # =====================================================
 
 def init():
 
     defaults = {
 
-        "pagina": "MENU",
+        "pagina":"MENU",
 
-        "chat": [],
+        "chat":[],
 
-        "inicio": None,
+        "inicio":None,
 
-        "fin": None,
+        "fin":None,
 
-        "caso": "Fibrilación ventricular",
+        "caso":
+        "Fibrilación ventricular",
 
-        "resultado": "",
+        "resultado":"",
 
-        "descargas": 0,
+        "descargas":0,
 
-        "energia": 0
+        "energia":0
     }
 
-    for clave, valor in defaults.items():
+    for k, v in defaults.items():
 
         st.session_state.setdefault(
-            clave,
-            valor
+            k,
+            v
         )
-
-
-init()
 # =====================================================
 # CSS
 # =====================================================
@@ -316,10 +425,10 @@ st.markdown("""
 <style>
 
 .stApp{
-    background:#f2f2f2;
+    background:#eeeeee;
 }
 
-/* Texto */
+/* TEXTO */
 
 html,
 body,
@@ -330,11 +439,13 @@ li,
 h1,
 h2,
 h3,
-h4{
+h4,
+h5,
+h6{
     color:#111111 !important;
 }
 
-/* Logo */
+/* LOGO */
 
 .logo{
     text-align:center;
@@ -348,34 +459,32 @@ h4{
     color:#f5b300;
 }
 
-/* Paneles */
+/* PANEL */
 
 .panel{
 
     background:white;
 
-    border:4px solid black;
+    border:3px solid black;
 
     border-radius:20px;
 
     padding:20px;
 
     margin-top:15px;
-
-    color:black;
 }
 
-/* Botones */
+/* BOTONES */
 
-.stButton button{
+.stButton > button{
 
     width:100%;
 
-    height:55px;
+    height:60px;
 
     border:3px solid black;
 
-    border-radius:12px;
+    border-radius:10px;
 
     background:white;
 
@@ -383,118 +492,91 @@ h4{
 
     font-size:18px;
 
-    font-weight:bold;
+    font-weight:800;
 }
 
-.stButton button:hover{
+.stButton > button:hover{
 
     background:black;
 
     color:white;
 }
 
-/* Paciente */
+/* SELECTORES */
 
-.human{
+div[data-baseweb="select"] *{
 
-    display:flex;
-
-    flex-direction:column;
-
-    align-items:center;
-
-    margin:20px;
+    color:black !important;
 }
 
-.head{
+/* SVG PACIENTE */
 
-    width:90px;
+.art svg{
 
-    height:90px;
+    width:220px;
 
-    border-radius:50%;
+    height:auto;
 
-    background:black;
-}
+    display:block;
 
-.body{
-
-    width:170px;
-
-    height:250px;
-
-    background:black;
-
-    margin-top:10px;
-
-    position:relative;
-
-    clip-path:polygon(
-    15% 0%,
-    85% 0%,
-    95% 100%,
-    5% 100%
-    );
-}
-
-.patch{
-
-    width:28px;
-
-    height:28px;
-
-    background:red;
-
-    position:absolute;
-}
-
-.patch1{
-
-    top:30px;
-
-    left:30px;
-}
-
-.patch2{
-
-    top:100px;
-
-    right:30px;
+    margin:auto;
 }
 
 /* ECG */
 
-.monitor{
+.ecg-art svg{
 
-    background:black;
+    width:100%;
 
-    color:#00ff66;
+    height:150px;
 
-    height:120px;
+    display:block;
+}
 
-    border-radius:15px;
+/* INFO */
 
-    margin-top:15px;
+.info{
 
-    padding:20px;
+    border:2px solid black;
 
-    font-family:monospace;
+    border-radius:10px;
 
-    font-size:28px;
+    padding:10px;
 
-    display:flex;
+    margin-top:10px;
 
-    align-items:center;
+    background:white;
+}
 
-    overflow:hidden;
+.warning{
+
+    background:#fff3cd;
+
+    border:2px solid #d6aa00;
+
+    padding:10px;
+
+    border-radius:10px;
+}
+
+.ok{
+
+    background:#d4edda;
+
+    border:2px solid #28a745;
+
+    padding:10px;
+
+    border-radius:10px;
 }
 
 </style>
 """,
 unsafe_allow_html=True)
 
+
 # =====================================================
-# COMPONENTES
+# LOGO
 # =====================================================
 
 def logo():
@@ -509,60 +591,63 @@ def logo():
     )
 
 
-def paciente():
+# =====================================================
+# ECG SVG
+# =====================================================
+
+def mostrar_ecg(ritmo):
+
+    archivo = RITMOS.get(
+        ritmo,
+        "senal_ecg.svg"
+    )
 
     st.markdown(
-        """
-        <div class="human">
-
-            <div class="head"></div>
-
-            <div class="body">
-
-                <div class="patch patch1"></div>
-
-                <div class="patch patch2"></div>
-
-            </div>
-
-        </div>
-        """,
+        svg(
+            archivo,
+            "ecg-art"
+        ),
         unsafe_allow_html=True
     )
 
 
 # =====================================================
-# ECG
+# PACIENTE SVG
 # =====================================================
 
-def mostrar_ecg(tipo):
-
-    if tipo == "Fibrilación ventricular":
-
-        señal = "▄▂▆▃▇▂▄▆▂▇▄▃▅▂▆▄▂▇▃▄▆"
-
-    elif tipo == "TV sin pulso":
-
-        señal = "/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/"
-
-    elif tipo == "Asistolia":
-
-        señal = "___________________________"
-
-    elif tipo == "AESP":
-
-        señal = "__/\\____/\\____/\\____/\\___"
-
-    else:
-
-        señal = "__/\\____/\\_______/\\______"
+def mostrar_paciente():
 
     st.markdown(
-        f"""
-        <div class="monitor">
-        {señal}
-        </div>
-        """,
+        svg(
+            "usuario_con_parches.svg",
+            "art"
+        ),
+        unsafe_allow_html=True
+    )
+
+
+# =====================================================
+# ICONOS
+# =====================================================
+
+def icono_info():
+
+    st.markdown(
+        svg(
+            "corazon_informacion.svg",
+            "art"
+        ),
+        unsafe_allow_html=True
+    )
+
+
+def icono_confirmacion():
+
+    st.markdown(
+        svg(
+            "corazon_confirmacion.svg",
+            "art"
+        ),
         unsafe_allow_html=True
     )
     # =====================================================
@@ -572,30 +657,46 @@ def mostrar_ecg(tipo):
 CASOS = {
 
     "Fibrilación ventricular": {
+
         "conciencia": "Inconsciente",
+
         "respiracion": "Agónica",
+
         "pulso": "Ausente",
+
         "desfibrilable": True
     },
 
     "TV sin pulso": {
+
         "conciencia": "Inconsciente",
+
         "respiracion": "Ausente",
+
         "pulso": "Ausente",
+
         "desfibrilable": True
     },
 
     "Asistolia": {
+
         "conciencia": "Inconsciente",
+
         "respiracion": "Ausente",
+
         "pulso": "Ausente",
+
         "desfibrilable": False
     },
 
     "AESP": {
+
         "conciencia": "Inconsciente",
+
         "respiracion": "Agónica",
+
         "pulso": "Ausente",
+
         "desfibrilable": False
     }
 }
@@ -609,7 +710,7 @@ logo()
 
 
 # =====================================================
-# MENU PRINCIPAL
+# MENÚ PRINCIPAL
 # =====================================================
 
 if st.session_state.pagina == "MENU":
@@ -619,23 +720,27 @@ if st.session_state.pagina == "MENU":
         unsafe_allow_html=True
     )
 
-    st.subheader("Simulador DEA")
+    icono_info()
 
-    st.write(
-        "Entrenamiento educativo para análisis de ritmos y uso de DEA."
+    st.subheader(
+        "Simulador Académico DEA"
     )
 
-    if st.button("📚 Aprendizaje"):
+    st.write(
+        "Entrenamiento virtual para reconocimiento de ritmos cardíacos y uso educativo del DEA."
+    )
+
+    if st.button("📚 APRENDIZAJE"):
 
         st.session_state.pagina = "APRENDIZAJE"
         st.rerun()
 
-    if st.button("⚡ Simulación DEA"):
+    if st.button("⚡ OPERAR DEA"):
 
         st.session_state.pagina = "SIMULACION"
         st.rerun()
 
-    if st.button("📊 Estadísticas"):
+    if st.button("📊 ESTADÍSTICAS"):
 
         st.session_state.pagina = "ESTADISTICAS"
         st.rerun()
@@ -647,7 +752,7 @@ if st.session_state.pagina == "MENU":
 
 
 # =====================================================
-# APRENDIZAJE
+# PANTALLA APRENDIZAJE
 # =====================================================
 
 elif st.session_state.pagina == "APRENDIZAJE":
@@ -657,34 +762,50 @@ elif st.session_state.pagina == "APRENDIZAJE":
         unsafe_allow_html=True
     )
 
+    icono_info()
+
     st.subheader(
         "Centro de aprendizaje"
     )
 
-    st.markdown("""
+    st.markdown(
+        """
 ### Preguntas sugeridas
 
 • ¿Qué es un DEA?
 
-• ¿Qué es una FV?
+• ¿Qué es la fibrilación ventricular?
 
-• ¿Qué es una TVSP?
+• ¿Qué es una TV sin pulso?
 
 • ¿Qué significa ROSC?
 
-• ¿Qué es AESP?
+• ¿Qué es una AESP?
 
-• ¿Por qué la asistolia no se desfibrila?
+• ¿Qué es ACLS?
 
-• ¿Cómo se realiza la RCP?
-""")
+• ¿Qué son las 4H y 4T?
 
-    if st.button("🤖 Abrir asistente"):
+• ¿Cómo se colocan los parches?
+
+• ¿Qué es la desfibrilación?
+
+• ¿Qué energía utiliza un DEA?
+
+• ¿Cuál es la frecuencia correcta de RCP?
+"""
+    )
+
+    if st.button(
+        "🤖 ABRIR ASISTENTE IA"
+    ):
 
         st.session_state.pagina = "CHAT"
         st.rerun()
 
-    if st.button("⬅ Volver"):
+    if st.button(
+        "⬅ VOLVER"
+    ):
 
         st.session_state.pagina = "MENU"
         st.rerun()
@@ -706,7 +827,9 @@ elif st.session_state.pagina == "CHAT":
         unsafe_allow_html=True
     )
 
-    st.subheader("Asistente IA")
+    st.subheader(
+        "Asistente IA Biomédico"
+    )
 
     pregunta = st.chat_input(
         "Escriba una pregunta..."
@@ -732,9 +855,12 @@ elif st.session_state.pagina == "CHAT":
 
             st.write(mensaje)
 
-    if st.button("⬅ Volver"):
+    if st.button(
+        "⬅ VOLVER"
+    ):
 
         st.session_state.pagina = "APRENDIZAJE"
+
         st.rerun()
 
     st.markdown(
@@ -744,7 +870,7 @@ elif st.session_state.pagina == "CHAT":
 
 
 # =====================================================
-# SIMULACIÓN
+# SIMULACIÓN DEA
 # =====================================================
 
 elif st.session_state.pagina == "SIMULACION":
@@ -758,10 +884,10 @@ elif st.session_state.pagina == "SIMULACION":
         "Preparar paciente"
     )
 
-    paciente()
+    mostrar_paciente()
 
     caso = st.selectbox(
-        "Seleccione un caso",
+        "Seleccione un caso clínico",
         list(CASOS.keys())
     )
 
@@ -769,41 +895,58 @@ elif st.session_state.pagina == "SIMULACION":
 
     datos = CASOS[caso]
 
-    st.info(
+    st.markdown(
         f"""
-Conciencia: {datos['conciencia']}
+<div class="info">
 
-Respiración: {datos['respiracion']}
+<b>Conciencia:</b> {datos['conciencia']}<br>
 
-Pulso: {datos['pulso']}
-"""
+<b>Respiración:</b> {datos['respiracion']}<br>
+
+<b>Pulso:</b> {datos['pulso']}
+
+</div>
+""",
+        unsafe_allow_html=True
     )
+
+    st.markdown("### ECG")
 
     mostrar_ecg(caso)
 
-    if st.button("ANALIZAR"):
+    if st.button(
+        "ANALIZAR RITMO"
+    ):
 
-        st.session_state.inicio = datetime.now()
+        st.session_state.inicio = (
+            datetime.now()
+        )
 
         barra = st.progress(0)
 
         for i in range(100):
 
-            barra.progress(i + 1)
+            barra.progress(
+                i + 1
+            )
 
             time.sleep(0.01)
 
         if datos["desfibrilable"]:
 
-            st.session_state.pagina = "DESCARGA"
+            st.session_state.pagina = (
+                "DESCARGA"
+            )
 
         else:
 
-            st.session_state.resultado = \
+            st.session_state.resultado = (
                 "Ritmo no desfibrilable"
+            )
 
-            st.session_state.fin = \
+            st.session_state.fin = (
                 datetime.now()
+            )
 
             guardar_evento({
 
@@ -816,7 +959,7 @@ Pulso: {datos['pulso']}
                 caso,
 
                 "resultado":
-                "Ritmo no desfibrilable",
+                st.session_state.resultado,
 
                 "descargas":
                 0,
@@ -825,14 +968,20 @@ Pulso: {datos['pulso']}
                 0
             })
 
-            st.session_state.pagina = \
+            st.session_state.pagina = (
                 "RESUMEN"
+            )
 
         st.rerun()
 
-    if st.button("⬅ Volver al menú"):
+    if st.button(
+        "⬅ VOLVER AL MENÚ"
+    ):
 
-        st.session_state.pagina = "MENU"
+        st.session_state.pagina = (
+            "MENU"
+        )
+
         st.rerun()
 
     st.markdown(
@@ -840,7 +989,7 @@ Pulso: {datos['pulso']}
         unsafe_allow_html=True
     )
     # =====================================================
-# DESCARGA DEA
+# DESCARGA RECOMENDADA
 # =====================================================
 
 elif st.session_state.pagina == "DESCARGA":
@@ -854,16 +1003,23 @@ elif st.session_state.pagina == "DESCARGA":
         "⚡ DESCARGA RECOMENDADA"
     )
 
-    st.success(
-        "El DEA recomienda una descarga virtual de 200 J."
-    )
-
     mostrar_ecg(
         st.session_state.caso
     )
 
-    st.warning(
-        "Simulación educativa. No se genera energía real."
+    st.markdown(
+        """
+        <div class="warning">
+
+        El DEA recomienda una descarga virtual
+        de 200 J.
+
+        Esta simulación es exclusivamente
+        educativa.
+
+        </div>
+        """,
+        unsafe_allow_html=True
     )
 
     if st.button(
@@ -880,15 +1036,19 @@ elif st.session_state.pagina == "DESCARGA":
 
         if exito:
 
-            st.session_state.resultado = \
+            st.session_state.resultado = (
                 "ROSC"
+            )
 
         else:
 
-            st.session_state.resultado = \
+            st.session_state.resultado = (
                 "Persistencia del ritmo"
+            )
 
-        st.session_state.fin = datetime.now()
+        st.session_state.fin = (
+            datetime.now()
+        )
 
         guardar_evento({
 
@@ -911,8 +1071,9 @@ elif st.session_state.pagina == "DESCARGA":
 
         })
 
-        st.session_state.pagina = \
+        st.session_state.pagina = (
             "POSTDESCARGA"
+        )
 
         st.rerun()
 
@@ -933,10 +1094,16 @@ elif st.session_state.pagina == "POSTDESCARGA":
         unsafe_allow_html=True
     )
 
-    if st.session_state.resultado == "ROSC":
+    if (
+        st.session_state.resultado
+        ==
+        "ROSC"
+    ):
+
+        icono_confirmacion()
 
         st.success(
-            "✅ Retorno de circulación espontánea (ROSC)"
+            "✅ Retorno de circulación espontánea"
         )
 
         mostrar_ecg(
@@ -944,6 +1111,8 @@ elif st.session_state.pagina == "POSTDESCARGA":
         )
 
     else:
+
+        icono_info()
 
         st.error(
             "❌ Persiste el ritmo inicial"
@@ -957,8 +1126,9 @@ elif st.session_state.pagina == "POSTDESCARGA":
         "📋 VER RESUMEN"
     ):
 
-        st.session_state.pagina = \
+        st.session_state.pagina = (
             "RESUMEN"
+        )
 
         st.rerun()
 
@@ -980,7 +1150,7 @@ elif st.session_state.pagina == "RESUMEN":
     )
 
     st.subheader(
-        "Resumen clínico"
+        "Resumen del evento"
     )
 
     tiempo_total = "0:00:00"
@@ -1012,16 +1182,20 @@ elif st.session_state.pagina == "RESUMEN":
     )
 
     st.write(
-        f"**Energía total:** {st.session_state.energia} J"
+        f"**Energía:** {st.session_state.energia} J"
     )
 
     st.write(
-        f"**Duración:** {tiempo_total}"
+        f"**Tiempo total:** {tiempo_total}"
     )
 
     st.markdown("---")
 
-    if st.session_state.resultado == "ROSC":
+    if (
+        st.session_state.resultado
+        ==
+        "ROSC"
+    ):
 
         mostrar_ecg(
             "Ritmo sinusal"
@@ -1045,10 +1219,10 @@ RESULTADO:
 DESCARGAS:
 {st.session_state.descargas}
 
-ENERGÍA:
+ENERGIA:
 {st.session_state.energia} J
 
-DURACIÓN:
+TIEMPO:
 {tiempo_total}
 
 FECHA:
@@ -1059,23 +1233,46 @@ HORA:
 """
 
     st.download_button(
-        "📄 Descargar resumen",
+
+        "📄 DESCARGAR RESUMEN",
+
         reporte,
+
         file_name="resumen_dea.txt"
     )
 
+    if BD_PATH.exists():
+
+        st.download_button(
+
+            "⬇ DESCARGAR HISTORIAL JSON",
+
+            BD_PATH.read_text(
+                encoding="utf-8"
+            ),
+
+            "historial_simulaciones.json",
+
+            "application/json"
+        )
+
     if st.button(
-        "🔄 Nueva simulación"
+        "🔄 NUEVA SIMULACIÓN"
     ):
 
         st.session_state.descargas = 0
+
         st.session_state.energia = 0
+
         st.session_state.resultado = ""
+
         st.session_state.inicio = None
+
         st.session_state.fin = None
 
-        st.session_state.pagina = \
+        st.session_state.pagina = (
             "MENU"
+        )
 
         st.rerun()
 
@@ -1086,7 +1283,7 @@ HORA:
 
 
 # =====================================================
-# ESTADÍSTICAS
+# ESTADISTICAS
 # =====================================================
 
 elif st.session_state.pagina == "ESTADISTICAS":
@@ -1112,13 +1309,18 @@ elif st.session_state.pagina == "ESTADISTICAS":
     if total > 0:
 
         exitos = len([
-            e
-            for e in historial
-            if e["resultado"] == "ROSC"
+            x
+            for x in historial
+            if x["resultado"] == "ROSC"
         ])
 
         porcentaje = round(
-            (exitos / total) * 100,
+            (
+                exitos
+                /
+                total
+            )
+            * 100,
             1
         )
 
@@ -1135,46 +1337,32 @@ elif st.session_state.pagina == "ESTADISTICAS":
         st.markdown("---")
 
         st.subheader(
-            "Últimas simulaciones"
+            "Últimos eventos"
         )
 
         for evento in reversed(
             historial[-10:]
         ):
 
-            st.info(
+            st.markdown(
                 f"""
-Fecha: {evento['fecha']}
+**Fecha:** {evento['fecha']}
 
-Caso: {evento['caso']}
+**Caso:** {evento['caso']}
 
-Resultado: {evento['resultado']}
+**Resultado:** {evento['resultado']}
 """
             )
 
-        st.download_button(
-            "⬇ Descargar historial JSON",
-            json.dumps(
-                historial,
-                indent=4,
-                ensure_ascii=False
-            ),
-            file_name=
-            "historial_simulaciones.json"
-        )
-
-    else:
-
-        st.warning(
-            "No existen simulaciones guardadas."
-        )
+            st.markdown("---")
 
     if st.button(
-        "⬅ Volver"
+        "⬅ VOLVER"
     ):
 
-        st.session_state.pagina = \
+        st.session_state.pagina = (
             "MENU"
+        )
 
         st.rerun()
 
@@ -1185,18 +1373,22 @@ Resultado: {evento['resultado']}
 
 
 # =====================================================
-# PIE DE PÁGINA
+# PIE DE PAGINA
 # =====================================================
 
 st.markdown(
-    """
+"""
 ---
-**Simulador DEA Académico**
 
-Uso exclusivamente educativo.
+**SIMULADOR ACADÉMICO DEA**
 
-No analiza señales reales.
+Uso exclusivo para formación y entrenamiento.
 
-No controla dispositivos biomédicos.
+No analiza ECG reales.
+
+No controla hardware.
+
+No sustituye formación clínica oficial.
 """
 )
+init()
