@@ -312,54 +312,6 @@ init()
 
 st.markdown(
 """
-/* =====================================
-   CORRECCIÓN DE COLORES
-===================================== */
-
-html,
-body,
-p,
-span,
-label,
-li,
-ul,
-ol,
-h1,
-h2,
-h3,
-h4,
-h5,
-h6{
-
-    color:#111111 !important;
-}
-
-[data-testid="stMarkdownContainer"]{
-
-    color:#111111 !important;
-}
-
-[data-testid="stMetricValue"]{
-
-    color:#111111 !important;
-}
-
-[data-testid="stMetricLabel"]{
-
-    color:#111111 !important;
-}
-
-.logo{
-
-    color:#111111 !important;
-}
-
-.panel{
-
-    background:white !important;
-
-    color:#111111 !important;
-}
 <style>
 
 /* APP */
@@ -371,16 +323,10 @@ background:#ececec;
 /* LOGO */
 
 .logo{
-
 text-align:center;
-
 font-size:42px;
-
 font-weight:900;
-
 margin-bottom:20px;
-
-color:#111111;
 }
 
 .bolt{
@@ -773,7 +719,7 @@ def mostrar_ecg(tipo):
     </div>
     """,
     unsafe_allow_html=True
-    )  
+    )
     # =====================================================
 # CASOS CLÍNICOS
 # =====================================================
