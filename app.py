@@ -715,25 +715,25 @@ elif st.session_state.pagina == "APRENDIZAJE":
     st.markdown("""
 ### Temas disponibles
 
-• DEA
+- DEA
 
-• Fibrilación Ventricular
+- Fibrilación Ventricular
 
-• TV sin Pulso
+- TV sin Pulso
 
-• AESP
+- AESP
 
-• Asistolia
+- Asistolia
 
-• RCP
+- RCP
 
-• ROSC
+- ROSC
 
-• ACLS
+- ACLS
 
-• ECG
+- ECG
 
-• Desfibrilación
+- Desfibrilación
 """)
 
     if st.button(
