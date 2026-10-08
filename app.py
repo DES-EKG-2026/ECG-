@@ -687,38 +687,45 @@ def paciente():
 
 def mostrar_ecg(tipo):
 
-    clase = {
+    def mostrar_ecg(tipo):
 
-        "Fibrilación ventricular":
-        "fv",
+    if tipo == "Fibrilación ventricular":
 
-        "TV sin pulso":
-        "tv",
+        señal = "▄▂▆▃▇▂▄▆▂▇▄▃▅▂▆▄▂▇▃▄▆"
 
-        "Asistolia":
-        "asistolia",
+    elif tipo == "TV sin pulso":
 
-        "AESP":
-        "aesp",
+        señal = "/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\"
 
-        "Ritmo sinusal":
-        "sinusal"
+    elif tipo == "Asistolia":
 
-    }.get(tipo, "sinusal")
+        señal = "______________________"
+
+    elif tipo == "AESP":
+
+        señal = "__/\\____/\\____/\\_____"
+
+    else:
+
+        señal = "__/\\____/\\________/\\__"
 
     st.markdown(
-    f"""
-    <div class="ecg-container">
-
-        <div class="ecg-track">
-
-            <div class="{clase}"></div>
-
+        f"""
+        <div style="
+        background:black;
+        color:#00ff66;
+        height:120px;
+        border-radius:15px;
+        padding:20px;
+        font-size:28px;
+        font-family:monospace;
+        display:flex;
+        align-items:center;
+        ">
+        {señal}
         </div>
-
-    </div>
-    """,
-    unsafe_allow_html=True
+        """,
+        unsafe_allow_html=True
     )
   # =====================================================
 # CASOS CLÍNICOS
