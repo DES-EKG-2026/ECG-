@@ -384,7 +384,6 @@ def guardar_evento(evento):
         encoding="utf-8"
     )
 
-
 # =====================================================
 # SESSION STATE
 # =====================================================
@@ -393,30 +392,32 @@ def init():
 
     defaults = {
 
-        "pagina":"MENU",
+        "pagina": "MENU",
 
-        "chat":[],
+        "chat": [],
 
-        "inicio":None,
+        "inicio": None,
 
-        "fin":None,
+        "fin": None,
 
-        "caso":
-        "Fibrilación ventricular",
+        "caso": "Fibrilación ventricular",
 
-        "resultado":"",
+        "resultado": "",
 
-        "descargas":0,
+        "descargas": 0,
 
-        "energia":0
+        "energia": 0
     }
 
-    for k, v in defaults.items():
+    for clave, valor in defaults.items():
 
-        st.session_state.setdefault(
-            k,
-            v
-        )
+        if clave not in st.session_state:
+
+            st.session_state[clave] = valor
+
+
+# INICIALIZAR SESSION STATE
+init()
 # =====================================================
 # CSS
 # =====================================================
