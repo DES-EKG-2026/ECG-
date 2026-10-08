@@ -1399,5 +1399,3 @@ No controla hardware biomédico.
 Uso exclusivamente educativo.
 """
 )
-
-necesito que me ayudes a corregir esto 
