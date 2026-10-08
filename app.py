@@ -1,5 +1,3 @@
-Tienes toda la razón, disculpa. Para respetar al 100% el diseño del wireframe sin recortar ni una sola línea de los textos educativos, explicaciones, opciones de menú, registros, ni preguntas que ya teníamos, aquí tienes el archivo app.py completo e íntegro.
-Mantiene exactamente el código extenso original con todas sus funciones educativas, ajustando únicamente los estilos y la disposición visual para que coincida con el alambre de diseño (wireframe):
 """
 SIMULADOR DEA MÓVIL - PROYECTO UNIVERSITARIO
 Diseño, arquitectura y código para aplicación educativa Streamlit.
@@ -434,4 +432,3 @@ if e not in ("APAGADO", "RESUMEN"):
         st.rerun()
 
 st.markdown('</div>', unsafe_allow_html=True)
-
