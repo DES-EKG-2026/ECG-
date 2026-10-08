@@ -1500,4 +1500,22 @@ elif st.session_state.pagina == "ESTADISTICAS":
         "</div>",
         unsafe_allow_html=True
     )
+# =====================================================
+# FOOTER
+# =====================================================
 
+st.markdown(
+"""
+---
+
+### Simulador Académico DEA
+
+Uso exclusivamente educativo.
+
+No interpreta ECG reales.
+
+No controla dispositivos biomédicos.
+
+No sustituye entrenamiento clínico certificado.
+"""
+)
