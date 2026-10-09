@@ -303,68 +303,85 @@ TOPICOS = {
 
 
 # =====================================================
-# IA LOCAL
+# IA CON GEMINI (NIVEL GRATUITO, SUJETO A CUOTAS)
 # =====================================================
-
 def responder_ia(pregunta):
-    """Responde usando un modelo conversacional, con contexto del chat."""
+    """Responde con Gemini y conserva el contexto reciente del chat."""
     try:
-        from openai import OpenAI
+        from google import genai
+        from google.genai import types
     except ImportError:
         return (
-            "Para activar la IA conversacional instala la dependencia con "
-            "`pip install openai` y reinicia la aplicación."
+            "Falta instalar google-genai. Añade 'google-genai' a "
+            "requirements.txt y espera a que Streamlit Cloud vuelva a desplegar."
         )
 
-    # Permite configurar la clave en Streamlit Secrets o como variable de entorno.
-    api_key = os.getenv("OPENAI_API_KEY", "").strip()
-    try:
-        if not api_key:
-            api_key = st.secrets.get("OPENAI_API_KEY", "").strip()
-    except Exception:
-        pass
+    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    if not api_key:
+        try:
+            api_key = str(st.secrets.get("GEMINI_API_KEY", "")).strip()
+        except Exception:
+            api_key = ""
 
     if not api_key:
         return (
-            "La IA todavía no está conectada. Configura OPENAI_API_KEY en "
-            "un archivo `.streamlit/secrets.toml` o como variable de entorno. "
+            "La IA no está conectada. En Streamlit Cloud abre Settings → Secrets "
+            "y configura GEMINI_API_KEY = \"tu_clave_real\". "
             "No escribas la clave dentro del código ni la compartas públicamente."
         )
 
-    instrucciones = """Eres un asistente educativo especializado en emergencias cardiovasculares, DEA, RCP, ECG y soporte vital básico/avanzado. Responde en español claro, natural y útil, como un asistente conversacional, no como un buscador de palabras clave.
+    instrucciones = """Eres un asistente educativo especializado en emergencias cardiovasculares, DEA, RCP, ECG y soporte vital básico/avanzado. Responde en español claro, natural y útil, como un tutor conversacional y no como un buscador de palabras clave.
 
-Comprende preguntas abiertas, preguntas formuladas de distintas maneras, solicitudes de explicación paso a paso, comparaciones, ejemplos, casos hipotéticos y preguntas de seguimiento. Usa el historial reciente para mantener el contexto. Si una pregunta es ambigua, intenta responder lo más útil posible y pide una aclaración solo cuando sea realmente necesaria. Organiza las respuestas con títulos o listas cuando ayuden; explica el porqué y no te limites a definiciones breves. Si no sabes algo, dilo con honestidad y no inventes datos.
+Comprende preguntas abiertas, solicitudes de explicación paso a paso, comparaciones, ejemplos, casos hipotéticos y preguntas de seguimiento. Usa el historial reciente para mantener el contexto. Explica el porqué y no te limites a definiciones breves. Si no sabes algo, dilo con honestidad y no inventes datos.
 
-El propósito principal es educativo. En asuntos clínicos, prioriza guías reconocidas y señala que los protocolos pueden variar según el país, el equipo y la formación. No afirmes que puedes interpretar un ECG real ni sustituir a personal entrenado. Si alguien describe una emergencia real, indica llamar al servicio local de emergencias y seguir las instrucciones del operador; para RCP/DEA, dar instrucciones generales seguras sin retrasar la ayuda profesional. Distingue claramente el contenido educativo de la atención médica individual."""
+El propósito es educativo. Prioriza las guías clínicas reconocidas y señala que los protocolos pueden variar por país, equipo y formación. No sustituyas a personal sanitario entrenado. Si alguien describe una emergencia real, indica llamar al servicio local de emergencias, iniciar RCP si corresponde y seguir las instrucciones del operador y del DEA. Nunca recomiendes tocar al paciente durante el análisis o la descarga del DEA."""
 
-    mensajes = [{"role": "system", "content": instrucciones}]
-    # El historial ya contiene la pregunta actual en las llamadas del chat.
-    # Enviar los últimos turnos permite preguntas de seguimiento con contexto.
-    historial = st.session_state.get("chat", [])[-16:]
-    for rol, contenido in historial:
-        if rol in ("user", "assistant") and isinstance(contenido, str):
-            mensajes.append({"role": rol, "content": contenido})
+    # La pregunta actual ya está en el historial; se excluye para no duplicarla.
+    historial = st.session_state.get("chat", [])[-17:]
+    if historial and historial[-1] == ("user", pregunta):
+        historial = historial[:-1]
 
-    # Si se llama desde otro lugar sin haber agregado la pregunta al historial.
-    if not historial or historial[-1] != ("user", pregunta):
-        mensajes.append({"role": "user", "content": pregunta})
+    lineas = []
+    for rol, contenido in historial[-16:]:
+        if not isinstance(contenido, str):
+            continue
+        nombre = "Usuario" if rol == "user" else "Tutor"
+        lineas.append(f"{nombre}: {contenido}")
+
+    contexto = "\n\n".join(lineas) if lineas else "(No hay conversación previa.)"
+    prompt = f"""Historial reciente de la conversación:
+{contexto}
+
+Pregunta actual del usuario:
+{pregunta}
+
+Responde a la pregunta actual teniendo en cuenta el contexto anterior. Usa Markdown cuando ayude a organizar la explicación."""
+
+    modelo = os.getenv("GEMINI_MODEL", "gemini-3.7-flash").strip()
 
     try:
-        cliente = OpenAI(api_key=api_key)
-        respuesta = cliente.chat.completions.create(
-            model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
-            messages=mensajes,
-            temperature=0.7,
-            max_tokens=1200,
+        cliente = genai.Client(api_key=api_key)
+        respuesta = cliente.models.generate_content(
+            model=modelo,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                system_instruction=instrucciones,
+                temperature=0.5,
+                max_output_tokens=1200,
+            ),
         )
-        texto = respuesta.choices[0].message.content
-        return texto.strip() if texto else "No pude generar una respuesta. Intenta formular la pregunta de otra manera."
+        texto = getattr(respuesta, "text", None)
+        if texto and texto.strip():
+            return texto.strip()
+        return "No pude generar una respuesta. Intenta formular la pregunta de otra manera."
     except Exception as error:
-        # Mensaje útil sin exponer detalles sensibles de configuración.
+        nombre_error = type(error).__name__
+        detalle = str(error)[:350]
         return (
-            "No pude conectar con el servicio de IA. Verifica tu conexión, "
-            "la clave API, el acceso al modelo y los límites de tu cuenta. "
-            f"Detalle técnico: {type(error).__name__}: {error}"
+            "No pude conectar con Gemini. Revisa que la clave sea correcta, "
+            "que el modelo esté disponible para tu cuenta y que no hayas agotado "
+            "la cuota gratuita. "
+            f"Detalle técnico: {nombre_error}: {detalle}"
         )
 
 
