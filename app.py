@@ -20,9 +20,9 @@ except ImportError:
 # =====================================================
 
 st.set_page_config(
-    page_title="Simulador DEA Profesional",
-    page_icon="⚡",
-    layout="centered"
+    page_title="Simulador DEA",
+    layout="centered",
+    initial_sidebar_state="collapsed",
 )
 
 ASSETS = Path(__file__).parent
@@ -47,6 +47,10 @@ if not BD_PATH.exists():
 def svg(nombre, clase="art"):
 
     archivo = ASSETS / nombre
+    if not archivo.exists():
+        archivo = ASSETS / "ECG" / nombre
+    if not archivo.exists():
+        archivo = ASSETS / "ecg" / nombre
 
     if archivo.exists():
 
@@ -71,6 +75,10 @@ def svg(nombre, clase="art"):
 def uri(nombre):
 
     archivo = ASSETS / nombre
+    if not archivo.exists():
+        archivo = ASSETS / "ECG" / nombre
+    if not archivo.exists():
+        archivo = ASSETS / "ecg" / nombre
 
     if archivo.exists():
 
@@ -303,86 +311,72 @@ TOPICOS = {
 
 
 # =====================================================
-# IA CON GEMINI (NIVEL GRATUITO, SUJETO A CUOTAS)
+# IA CON GROQ (uso sujeto a los límites de la cuenta)
 # =====================================================
 def responder_ia(pregunta):
-    """Responde con Gemini y conserva el contexto reciente del chat."""
+    """Responde con Groq y mantiene el contexto reciente del chat."""
     try:
-        from google import genai
-        from google.genai import types
+        from groq import Groq
     except ImportError:
         return (
-            "Falta instalar google-genai. Añade 'google-genai' a "
-            "requirements.txt y espera a que Streamlit Cloud vuelva a desplegar."
+            "Falta instalar la biblioteca de Groq. Añade 'groq' a "
+            "requirements.txt y espera a que Streamlit Cloud termine el despliegue."
         )
 
-    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    api_key = os.getenv("GROQ_API_KEY", "").strip()
     if not api_key:
         try:
-            api_key = str(st.secrets.get("GEMINI_API_KEY", "")).strip()
+            api_key = str(st.secrets.get("GROQ_API_KEY", "")).strip()
         except Exception:
             api_key = ""
 
     if not api_key:
         return (
-            "La IA no está conectada. En Streamlit Cloud abre Settings → Secrets "
-            "y configura GEMINI_API_KEY = \"tu_clave_real\". "
-            "No escribas la clave dentro del código ni la compartas públicamente."
+            "La IA todavía no está conectada. En Streamlit Cloud abre "
+            "Settings → Secrets y configura GROQ_API_KEY = \"tu_clave_real\". "
+            "No publiques ni compartas tu clave API."
         )
 
-    instrucciones = """Eres un asistente educativo especializado en emergencias cardiovasculares, DEA, RCP, ECG y soporte vital básico/avanzado. Responde en español claro, natural y útil, como un tutor conversacional y no como un buscador de palabras clave.
+    instrucciones = """Eres un asistente educativo biomédico especializado en DEA, RCP, ECG y soporte vital básico. Responde en español claro, cercano y organizado. Comprende preguntas abiertas, explicaciones paso a paso, comparaciones, casos hipotéticos y preguntas de seguimiento. Usa el contexto reciente del chat, explica el porqué y reconoce honestamente cuando no sabes algo.
 
-Comprende preguntas abiertas, solicitudes de explicación paso a paso, comparaciones, ejemplos, casos hipotéticos y preguntas de seguimiento. Usa el historial reciente para mantener el contexto. Explica el porqué y no te limites a definiciones breves. Si no sabes algo, dilo con honestidad y no inventes datos.
+El propósito es educativo y no sustituye a personal sanitario ni formación certificada. Prioriza recomendaciones de guías clínicas reconocidas y aclara que los protocolos pueden variar. Si describen una emergencia real, indica llamar al servicio local de emergencias, iniciar RCP si corresponde y seguir las instrucciones del operador y del DEA. Nunca indiques tocar al paciente durante el análisis o la descarga. Después de una descarga, reanudar inmediatamente la RCP siguiendo las instrucciones del DEA y el protocolo local."""
 
-El propósito es educativo. Prioriza las guías clínicas reconocidas y señala que los protocolos pueden variar por país, equipo y formación. No sustituyas a personal sanitario entrenado. Si alguien describe una emergencia real, indica llamar al servicio local de emergencias, iniciar RCP si corresponde y seguir las instrucciones del operador y del DEA. Nunca recomiendes tocar al paciente durante el análisis o la descarga del DEA."""
-
-    # La pregunta actual ya está en el historial; se excluye para no duplicarla.
     historial = st.session_state.get("chat", [])[-17:]
     if historial and historial[-1] == ("user", pregunta):
         historial = historial[:-1]
 
-    lineas = []
+    mensajes = [{"role": "system", "content": instrucciones}]
     for rol, contenido in historial[-16:]:
         if not isinstance(contenido, str):
             continue
-        nombre = "Usuario" if rol == "user" else "Tutor"
-        lineas.append(f"{nombre}: {contenido}")
+        role = "user" if rol == "user" else "assistant"
+        mensajes.append({"role": role, "content": contenido})
+    mensajes.append({"role": "user", "content": pregunta})
 
-    contexto = "\n\n".join(lineas) if lineas else "(No hay conversación previa.)"
-    prompt = f"""Historial reciente de la conversación:
-{contexto}
-
-Pregunta actual del usuario:
-{pregunta}
-
-Responde a la pregunta actual teniendo en cuenta el contexto anterior. Usa Markdown cuando ayude a organizar la explicación."""
-
-    modelo = os.getenv("GEMINI_MODEL", "gemini-3.7-flash").strip()
+    modelo = os.getenv("GROQ_MODEL", "openai/gpt-oss-20b").strip()
+    cliente = Groq(api_key=api_key, timeout=35.0, max_retries=1)
 
     try:
-        cliente = genai.Client(api_key=api_key)
-        respuesta = cliente.models.generate_content(
+        respuesta = cliente.chat.completions.create(
             model=modelo,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                system_instruction=instrucciones,
-                temperature=0.5,
-                max_output_tokens=1200,
-            ),
+            messages=mensajes,
+            temperature=0.4,
+            max_completion_tokens=1200,
         )
-        texto = getattr(respuesta, "text", None)
+        texto = respuesta.choices[0].message.content
         if texto and texto.strip():
             return texto.strip()
-        return "No pude generar una respuesta. Intenta formular la pregunta de otra manera."
+        return "No pude generar una respuesta. Intenta hacer la pregunta de otra manera."
     except Exception as error:
         nombre_error = type(error).__name__
-        detalle = str(error)[:350]
-        return (
-            "No pude conectar con Gemini. Revisa que la clave sea correcta, "
-            "que el modelo esté disponible para tu cuenta y que no hayas agotado "
-            "la cuota gratuita. "
-            f"Detalle técnico: {nombre_error}: {detalle}"
-        )
+        detalle = str(error).lower()
+        if "401" in detalle or "authentication" in detalle or "invalid api key" in detalle:
+            return "No se pudo autenticar con Groq. Revisa que GROQ_API_KEY esté copiada correctamente en Streamlit Cloud → Settings → Secrets."
+        if "429" in detalle or "rate limit" in detalle or "quota" in detalle:
+            return "Groq alcanzó temporalmente el límite de solicitudes o tokens de tu cuenta. Espera un poco y vuelve a intentarlo; no necesitas publicar tu clave."
+        if any(codigo in detalle for codigo in ("500", "502", "503", "504")):
+            return "El servicio de Groq está teniendo un problema temporal. Espera unos segundos y vuelve a intentarlo."
+        return f"No pude completar la consulta con Groq ({nombre_error}). Comprueba tu conexión, la clave y el modelo configurado."
 
 
 # =====================================================
@@ -440,13 +434,21 @@ def reiniciar_simulacion():
     st.session_state.descarga_recomendada = False
 
 def icono_info():
-    st.markdown("<div style='text-align:center; font-size:40px;'>ℹ️</div>", unsafe_allow_html=True)
+    st.markdown(svg("corazon_informacion.svg", "art icon-art"), unsafe_allow_html=True)
+
 
 def icono_confirmacion():
-    st.markdown("<div style='text-align:center; font-size:40px;'>✅</div>", unsafe_allow_html=True)
+    st.markdown(svg("corazon_confirmacion.svg", "art icon-art"), unsafe_allow_html=True)
+
+
+def icono_descarga():
+    st.markdown(svg("corazon_descarga.svg", "art icon-art"), unsafe_allow_html=True)
+
 
 def mostrar_paciente():
-    st.markdown("<div style='text-align:center; font-size:50px;'>🧍‍♂️</div>", unsafe_allow_html=True)
+    # Se reutiliza el corazón informativo disponible en el repositorio.
+    st.markdown(svg("corazon_informacion.svg", "art icon-art"), unsafe_allow_html=True)
+
 
 def mostrar_ecg(caso):
     if caso in RITMOS:
@@ -462,11 +464,13 @@ st.markdown("""
 <style>
 
 .stApp{
-    background:#eeeeee;
+    background:linear-gradient(180deg, #f5f8fc 0%, #eaf0f7 100%);
 }
 
 .block-container{
-    max-width:900px;
+    max-width:980px;
+    padding-top: 1.8rem;
+    padding-bottom: 2.5rem;
 }
 
 /* TEXTO */
@@ -493,13 +497,21 @@ h6{
 
     text-align:center;
 
-    font-size:42px;
-
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:14px;
+    font-size:clamp(30px, 4vw, 44px);
     font-weight:900;
+    color:#132238;
+    margin: 0 auto 24px auto;
+    letter-spacing:-0.8px;
+}
 
-    color:#111111;
-
-    margin-bottom:15px;
+.logo-icon {
+    width:48px;
+    height:48px;
+    object-fit:contain;
 }
 
 .bolt{
@@ -526,28 +538,29 @@ h6{
 
 .stButton > button{
 
-    width:100%;
+    width:min(100%, 360px);
+    min-height:54px;
+    border:2px solid #1e3a5f;
+    border-radius:14px;
+    background:#ffffff;
+    color:#132238;
+    font-size:16px;
+    font-weight:750;
+    box-shadow:0 3px 10px rgba(20, 45, 75, .08);
+    transition:all .18s ease;
+}
 
-    height:60px;
-
-    border:3px solid black;
-
-    border-radius:12px;
-
-    background:white;
-
-    color:black;
-
-    font-size:18px;
-
-    font-weight:800;
+.stButton {
+    display:flex;
+    justify-content:center;
 }
 
 .stButton > button:hover{
 
-    background:black !important;
-
+    background:#1e3a5f !important;
     color:white !important;
+    border-color:#1e3a5f !important;
+    transform:translateY(-1px);
 }
 
 /* SELECT */
@@ -565,14 +578,17 @@ div[data-baseweb="select"] *{
 }
 
 .art svg{
-
-    width:220px;
-
+    width:150px;
+    max-height:150px;
     height:auto;
-
     display:block;
+    margin:10px auto 18px auto;
+}
 
-    margin:auto;
+.icon-art svg {
+    width:86px;
+    max-height:86px;
+    margin:8px auto 16px auto;
 }
 
 /* ECG */
@@ -594,40 +610,37 @@ div[data-baseweb="select"] *{
 /* INFORMACIÓN */
 
 .info{
-
-    border:2px solid black;
-
-    border-radius:12px;
-
-    padding:12px;
-
-    margin-top:10px;
-
+    border:1px solid #d8e2ee;
+    border-radius:16px;
+    padding:16px 18px;
+    margin-top:12px;
     background:white;
+    box-shadow:0 4px 14px rgba(20,45,75,.06);
 }
 
 /* ALERTAS */
 
 .warning{
-
-    background:#fff3cd;
-
-    border:2px solid #d4a900;
-
-    border-radius:12px;
-
-    padding:12px;
+    background:#fff7df;
+    border:1px solid #e8c86b;
+    border-radius:14px;
+    padding:16px;
 }
 
 .ok{
+    background:#e6f6ed;
+    border:1px solid #8ccca7;
+    border-radius:14px;
+    padding:16px;
+}
 
-    background:#d4edda;
+.stChatMessage {
+    border-radius:14px;
+}
 
-    border:2px solid #198754;
-
-    border-radius:12px;
-
-    padding:12px;
+@media (max-width: 640px) {
+    .block-container { padding-left: 1rem; padding-right: 1rem; }
+    .logo-icon { width:38px; height:38px; }
 }
 
 </style>
@@ -640,14 +653,11 @@ unsafe_allow_html=True)
 # =====================================================
 
 def logo():
-
+    icono = uri("boton_encendido.svg")
+    imagen = f'<img class="logo-icon" src="{icono}" alt="Encendido">' if icono else ""
     st.markdown(
-        """
-        <div class="logo">
-            <span class="bolt">⚡</span> Simulador DEA
-        </div>
-        """,
-        unsafe_allow_html=True
+        f'<div class="logo">{imagen}<span>Simulador DEA</span></div>',
+        unsafe_allow_html=True,
     )
 
 # =====================================================
@@ -715,10 +725,6 @@ logo()
 
 if st.session_state.pagina == "MENU":
 
-    st.markdown(
-        "<div class='panel'>",
-        unsafe_allow_html=True
-    )
 
     icono_info()
 
@@ -731,7 +737,7 @@ if st.session_state.pagina == "MENU":
     )
 
     if st.button(
-        "📚 APRENDIZAJE"
+        "APRENDIZAJE"
     ):
 
         st.session_state.pagina = (
@@ -741,7 +747,7 @@ if st.session_state.pagina == "MENU":
         st.rerun()
 
     if st.button(
-        "⚡ OPERAR DEA"
+        "OPERAR DEA"
     ):
 
         reiniciar_simulacion()
@@ -753,7 +759,7 @@ if st.session_state.pagina == "MENU":
         st.rerun()
 
     if st.button(
-        "📊 ESTADÍSTICAS"
+        "ESTADÍSTICAS"
     ):
 
         st.session_state.pagina = (
@@ -762,10 +768,6 @@ if st.session_state.pagina == "MENU":
 
         st.rerun()
 
-    st.markdown(
-        "</div>",
-        unsafe_allow_html=True
-    )
 
 
 # =====================================================
@@ -774,10 +776,6 @@ if st.session_state.pagina == "MENU":
 
 elif st.session_state.pagina == "APRENDIZAJE":
 
-    st.markdown(
-        "<div class='panel'>",
-        unsafe_allow_html=True
-    )
 
     icono_info()
 
@@ -810,7 +808,7 @@ elif st.session_state.pagina == "APRENDIZAJE":
 """)
 
     if st.button(
-        "🤖 ABRIR ASISTENTE IA"
+        "ABRIR ASISTENTE IA"
     ):
 
         st.session_state.pagina = (
@@ -820,7 +818,7 @@ elif st.session_state.pagina == "APRENDIZAJE":
         st.rerun()
 
     if st.button(
-        "⬅ VOLVER"
+        "VOLVER"
     ):
 
         st.session_state.pagina = (
@@ -829,10 +827,6 @@ elif st.session_state.pagina == "APRENDIZAJE":
 
         st.rerun()
 
-    st.markdown(
-        "</div>",
-        unsafe_allow_html=True
-    )
 
 
 # =====================================================
@@ -841,10 +835,6 @@ elif st.session_state.pagina == "APRENDIZAJE":
 
 elif st.session_state.pagina == "CHAT":
 
-    st.markdown(
-        "<div class='panel'>",
-        unsafe_allow_html=True
-    )
 
     st.subheader(
         "Asistente IA Biomédico"
@@ -1054,7 +1044,7 @@ elif st.session_state.pagina == "CHAT":
             st.markdown(mensaje)
 
     if st.button(
-        "⬅ VOLVER"
+        "VOLVER"
     ):
 
         st.session_state.pagina = (
@@ -1063,10 +1053,6 @@ elif st.session_state.pagina == "CHAT":
 
         st.rerun()
 
-    st.markdown(
-        "</div>",
-        unsafe_allow_html=True
-    )
 
 
 # =====================================================
@@ -1075,10 +1061,6 @@ elif st.session_state.pagina == "CHAT":
 
 elif st.session_state.pagina == "SIMULACION":
 
-    st.markdown(
-        "<div class='panel'>",
-        unsafe_allow_html=True
-    )
 
     st.subheader(
         "Preparar paciente"
@@ -1119,11 +1101,11 @@ elif st.session_state.pagina == "SIMULACION":
     if not st.session_state.conectado:
 
         st.warning(
-            "🔌 Conecte el DEA al paciente para iniciar el análisis."
+            "Conecte el DEA al paciente para iniciar el análisis."
         )
 
         if st.button(
-            "🔌 CONECTAR DEA"
+            "CONECTAR DEA"
         ):
 
             st.session_state.conectado = True
@@ -1137,7 +1119,7 @@ elif st.session_state.pagina == "SIMULACION":
     else:
 
         st.success(
-            "✅ DEA conectado correctamente."
+            "DEA conectado correctamente."
         )
 
         st.markdown(
@@ -1166,10 +1148,6 @@ elif st.session_state.pagina == "SIMULACION":
 
             st.rerun()
 
-    st.markdown(
-        "</div>",
-        unsafe_allow_html=True
-    )
 
 # =====================================================
 # DESCARGA DEA
@@ -1177,14 +1155,12 @@ elif st.session_state.pagina == "SIMULACION":
 
 elif st.session_state.pagina == "DESCARGA":
 
-    st.markdown(
-        "<div class='panel'>",
-        unsafe_allow_html=True
-    )
 
     st.subheader(
-        "⚡ DESCARGA RECOMENDADA"
+        "DESCARGA RECOMENDADA"
     )
+
+    icono_descarga()
 
     mostrar_ecg(
         st.session_state.caso
@@ -1206,7 +1182,7 @@ Asegúrese de que nadie toque al paciente.
     )
 
     if st.button(
-        "⚡ APLICAR DESCARGA"
+        "APLICAR DESCARGA"
     ):
 
         st.session_state.descargas += 1
@@ -1265,10 +1241,6 @@ Asegúrese de que nadie toque al paciente.
 
         st.rerun()
 
-    st.markdown(
-        "</div>",
-        unsafe_allow_html=True
-    )
 
 
 # =====================================================
@@ -1277,10 +1249,6 @@ Asegúrese de que nadie toque al paciente.
 
 elif st.session_state.pagina == "POSTDESCARGA":
 
-    st.markdown(
-        "<div class='panel'>",
-        unsafe_allow_html=True
-    )
 
     # ----------------------------------------------
     # ROSC
@@ -1295,7 +1263,7 @@ elif st.session_state.pagina == "POSTDESCARGA":
         icono_confirmacion()
 
         st.success(
-            "✅ Retorno de circulación espontánea"
+            "Retorno de circulación espontánea"
         )
 
         st.markdown(
@@ -1323,7 +1291,7 @@ de la circulación espontánea.
         icono_info()
 
         st.error(
-            "❌ Persiste el ritmo inicial"
+            "Persiste el ritmo inicial"
         )
 
         st.markdown(
@@ -1346,7 +1314,7 @@ El DEA volverá a requerir un análisis.
     st.markdown("---")
 
     if st.button(
-        "📋 VER RESUMEN"
+        "VER RESUMEN"
     ):
 
         st.session_state.pagina = (
@@ -1355,10 +1323,6 @@ El DEA volverá a requerir un análisis.
 
         st.rerun()
 
-    st.markdown(
-        "</div>",
-        unsafe_allow_html=True
-    )
 
 
 # =====================================================
@@ -1367,10 +1331,6 @@ El DEA volverá a requerir un análisis.
 
 elif st.session_state.pagina == "RESUMEN":
 
-    st.markdown(
-        "<div class='panel'>",
-        unsafe_allow_html=True
-    )
 
     st.subheader(
         "Resumen clínico"
@@ -1451,7 +1411,7 @@ HORA:
 
     st.download_button(
 
-        "📄 DESCARGAR RESUMEN",
+        "DESCARGAR RESUMEN",
 
         reporte,
 
@@ -1462,7 +1422,7 @@ HORA:
 
         st.download_button(
 
-            "⬇ DESCARGAR HISTORIAL JSON",
+            "DESCARGAR HISTORIAL JSON",
 
             BD_PATH.read_text(
                 encoding="utf-8"
@@ -1476,7 +1436,7 @@ HORA:
         )
 
     if st.button(
-        "🔄 NUEVA SIMULACIÓN"
+        "NUEVA SIMULACIÓN"
     ):
 
         reiniciar_simulacion()
@@ -1487,10 +1447,6 @@ HORA:
 
         st.rerun()
 
-    st.markdown(
-        "</div>",
-        unsafe_allow_html=True
-    )
 
 
 # =====================================================
@@ -1499,10 +1455,6 @@ HORA:
 
 elif st.session_state.pagina == "ESTADISTICAS":
 
-    st.markdown(
-        "<div class='panel'>",
-        unsafe_allow_html=True
-    )
 
     st.subheader(
         "Estadísticas"
@@ -1579,7 +1531,7 @@ elif st.session_state.pagina == "ESTADISTICAS":
         )
 
     if st.button(
-        "⬅ VOLVER"
+        "VOLVER"
     ):
 
         st.session_state.pagina = (
@@ -1588,10 +1540,6 @@ elif st.session_state.pagina == "ESTADISTICAS":
 
         st.rerun()
 
-    st.markdown(
-        "</div>",
-        unsafe_allow_html=True
-    )
 # =====================================================
 # FOOTER
 # =====================================================
