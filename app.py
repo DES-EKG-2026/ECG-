@@ -5,6 +5,7 @@ import base64
 import json
 import os
 import random
+import re
 import time
 
 import streamlit as st
@@ -337,7 +338,7 @@ def responder_ia(pregunta):
             "No publiques ni compartas tu clave API."
         )
 
-    instrucciones = """Eres un asistente educativo biomédico especializado en DEA, RCP, ECG y soporte vital básico. Responde en español claro, cercano y organizado. Comprende preguntas abiertas, explicaciones paso a paso, comparaciones, casos hipotéticos y preguntas de seguimiento. Usa el contexto reciente del chat, explica el porqué y reconoce honestamente cuando no sabes algo.
+    instrucciones = """Eres un asistente educativo biomédico especializado en DEA, RCP, ECG y soporte vital básico. Responde en español claro, cercano y organizado. Comprende preguntas abiertas, explicaciones paso a paso, comparaciones, casos hipotéticos y preguntas de seguimiento. Usa el contexto reciente del chat, explica el porqué y reconoce honestamente cuando no sabes algo. Presenta las respuestas con títulos breves y listas numeradas o viñetas cuando ayuden a leer. Evita tablas anchas salvo que sean necesarias. No escribas etiquetas HTML como <br>, <div> o <p>; utiliza Markdown normal y saltos de línea. Usa negritas con moderación para destacar acciones importantes.
 
 El propósito es educativo y no sustituye a personal sanitario ni formación certificada. Prioriza recomendaciones de guías clínicas reconocidas y aclara que los protocolos pueden variar. Si describen una emergencia real, indica llamar al servicio local de emergencias, iniciar RCP si corresponde y seguir las instrucciones del operador y del DEA. Nunca indiques tocar al paciente durante el análisis o la descarga. Después de una descarga, reanudar inmediatamente la RCP siguiendo las instrucciones del DEA y el protocolo local."""
 
@@ -456,6 +457,17 @@ def mostrar_ecg(caso):
     else:
         st.info(f"Monitor ECG: {caso}")
 
+def preparar_mensaje_chat(texto):
+    """Normaliza saltos de línea HTML accidentales para que el chat se lea bien."""
+    texto = str(texto or "")
+    texto = re.sub(r"(?i)&lt;\s*br\s*/?\s*&gt;", "\n", texto)
+    texto = re.sub(r"(?i)<\s*br\s*/?\s*>", "\n", texto)
+    texto = re.sub(r"(?i)</\s*p\s*>", "\n\n", texto)
+    texto = re.sub(r"(?i)<\s*p(?:\s+[^>]*)?>", "", texto)
+    texto = re.sub(r"(?i)</?\s*div(?:\s+[^>]*)?>", "", texto)
+    return re.sub(r"\n{3,}", "\n\n", texto).strip()
+
+
 # =====================================================
 # CSS
 # =====================================================
@@ -464,31 +476,64 @@ st.markdown("""
 <style>
 
 .stApp{
-    background:linear-gradient(180deg, #f5f8fc 0%, #eaf0f7 100%);
+    background:linear-gradient(135deg, #fbf8ff 0%, #f2eaff 48%, #f8f5ff 100%);
 }
 
 .block-container{
-    max-width:980px;
-    padding-top: 1.8rem;
-    padding-bottom: 2.5rem;
+    max-width:1080px;
+    padding-top: 1.6rem;
+    padding-bottom: 2.8rem;
 }
 
 /* TEXTO */
 
-html,
-body,
-p,
-span,
-label,
-li,
-h1,
-h2,
-h3,
-h4,
-h5,
-h6{
+html, body, p, span, label, li, h1, h2, h3, h4, h5, h6 {
+    color: #30234a;
+}
 
-    color:#111111 !important;
+[data-testid="stMarkdownContainer"] p,
+[data-testid="stMarkdownContainer"] li {
+    color: #30234a !important;
+    line-height: 1.7;
+}
+
+[data-testid="stMarkdownContainer"] strong {
+    color: #4c268a !important;
+}
+
+[data-testid="stMarkdownContainer"] table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid #ded0f5;
+    background: #ffffff;
+    color: #30234a !important;
+    font-size: 0.94rem;
+}
+
+[data-testid="stMarkdownContainer"] thead tr th {
+    background: #6d3bb5 !important;
+    color: #ffffff !important;
+    font-weight: 750;
+    padding: 12px 14px !important;
+    border-bottom: 1px solid #d8c5f4 !important;
+}
+
+[data-testid="stMarkdownContainer"] tbody tr td {
+    background: #ffffff !important;
+    color: #30234a !important;
+    padding: 12px 14px !important;
+    border-bottom: 1px solid #eee6fa !important;
+}
+
+[data-testid="stMarkdownContainer"] tbody tr:nth-child(even) td {
+    background: #f7f2ff !important;
+}
+
+[data-testid="stMarkdownContainer"] tbody tr:last-child td {
+    border-bottom: none !important;
 }
 
 /* LOGO */
@@ -503,7 +548,7 @@ h6{
     gap:14px;
     font-size:clamp(30px, 4vw, 44px);
     font-weight:900;
-    color:#132238;
+    color:#54258b;
     margin: 0 auto 24px auto;
     letter-spacing:-0.8px;
 }
@@ -523,11 +568,12 @@ h6{
 
 .panel{
 
-    background:white;
+    background:linear-gradient(145deg, #ffffff 0%, #faf6ff 100%);
 
-    border:3px solid black;
+    border:1px solid #e1d1f7;
 
-    border-radius:20px;
+    border-radius:22px;
+    box-shadow:0 12px 30px rgba(93, 52, 150, .10);
 
     padding:20px;
 
@@ -540,10 +586,10 @@ h6{
 
     width:min(100%, 360px);
     min-height:54px;
-    border:2px solid #1e3a5f;
-    border-radius:14px;
-    background:#ffffff;
-    color:#132238;
+    border:1px solid #8d65c7;
+    border-radius:16px;
+    background:linear-gradient(135deg, #ffffff 0%, #f5edff 100%);
+    color:#4d267f;
     font-size:16px;
     font-weight:750;
     box-shadow:0 3px 10px rgba(20, 45, 75, .08);
@@ -557,17 +603,22 @@ h6{
 
 .stButton > button:hover{
 
-    background:#1e3a5f !important;
+    background:linear-gradient(135deg, #7540b5 0%, #5c2d91 100%) !important;
     color:white !important;
-    border-color:#1e3a5f !important;
+    border-color:#7540b5 !important;
     transform:translateY(-1px);
 }
 
 /* SELECT */
 
-div[data-baseweb="select"] *{
+div[data-baseweb="select"] * {
+    color:#34234e !important;
+}
 
-    color:black !important;
+div[data-baseweb="select"] > div {
+    border-color:#cdb8eb !important;
+    border-radius:14px !important;
+    background:#ffffff !important;
 }
 
 /* SVG GENERALES */
@@ -610,12 +661,12 @@ div[data-baseweb="select"] *{
 /* INFORMACIÓN */
 
 .info{
-    border:1px solid #d8e2ee;
-    border-radius:16px;
-    padding:16px 18px;
+    border:1px solid #e1d2f5;
+    border-radius:18px;
+    padding:18px 20px;
     margin-top:12px;
-    background:white;
-    box-shadow:0 4px 14px rgba(20,45,75,.06);
+    background:linear-gradient(145deg, #ffffff 0%, #faf6ff 100%);
+    box-shadow:0 8px 22px rgba(93,52,150,.08);
 }
 
 /* ALERTAS */
@@ -635,7 +686,37 @@ div[data-baseweb="select"] *{
 }
 
 .stChatMessage {
-    border-radius:14px;
+    border-radius:18px;
+    padding:12px 14px;
+    margin-bottom:12px;
+    border:1px solid #e5d8f7;
+    background:rgba(255,255,255,.88);
+    box-shadow:0 5px 16px rgba(93,52,150,.06);
+}
+
+[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) {
+    background:#f0e7ff;
+    border-color:#d7c2f5;
+}
+
+[data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] {
+    color:#30234a !important;
+}
+
+[data-testid="stChatInput"] textarea {
+    border:1px solid #cbb3ec !important;
+    border-radius:16px !important;
+    background:#ffffff !important;
+    color:#30234a !important;
+}
+
+[data-testid="stChatInput"] textarea:focus {
+    border-color:#7a48b8 !important;
+    box-shadow:0 0 0 2px rgba(122,72,184,.15) !important;
+}
+
+.stAlert {
+    border-radius:16px !important;
 }
 
 @media (max-width: 640px) {
@@ -1040,8 +1121,7 @@ elif st.session_state.pagina == "CHAT":
     for rol, mensaje in st.session_state.chat:
 
         with st.chat_message(rol):
-
-            st.markdown(mensaje)
+            st.markdown(preparar_mensaje_chat(mensaje) if "preparar_mensaje_chat" in globals() else mensaje)
 
     if st.button(
         "VOLVER"
