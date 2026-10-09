@@ -59,11 +59,11 @@ def svg(nombre, clase="art"):
             encoding="utf-8"
         )
 
-        return f"""
-        <div class="{clase}">
-        {contenido}
-        </div>
-        """
+        return (
+            f'<div class="{clase}">'
+            f'{contenido}'
+            '</div>'
+        )
 
     return f"""
     <div class="{clase}">
@@ -607,6 +607,27 @@ html, body, p, span, label, li, h1, h2, h3, h4, h5, h6 {
     color:white !important;
     border-color:#7540b5 !important;
     transform:translateY(-1px);
+}
+
+/* BOTONES DE DESCARGA */
+[data-testid="stDownloadButton"] > button {
+    width: min(100%, 360px);
+    min-height: 50px;
+    border: 1px solid #8d65c7 !important;
+    border-radius: 16px !important;
+    background: linear-gradient(135deg, #7540b5 0%, #5c2d91 100%) !important;
+    color: #ffffff !important;
+    font-size: 15px;
+    font-weight: 750;
+    box-shadow: 0 5px 14px rgba(93, 52, 150, .18);
+}
+[data-testid="stDownloadButton"] > button p {
+    color: #ffffff !important;
+}
+[data-testid="stDownloadButton"] > button:hover {
+    background: linear-gradient(135deg, #8b5bc8 0%, #65359e 100%) !important;
+    border-color: #8b5bc8 !important;
+    transform: translateY(-1px);
 }
 
 /* SELECT */
@@ -1246,6 +1267,11 @@ elif st.session_state.pagina == "DESCARGA":
         st.session_state.caso
     )
 
+    st.info(
+        "Ritmo desfibrilable detectado. En esta simulación, pulse el botón morado "
+        "para registrar la descarga educativa de 200 J."
+    )
+
     st.markdown(
         """
 <div class="warning">
@@ -1329,6 +1355,11 @@ Asegúrese de que nadie toque al paciente.
 
 elif st.session_state.pagina == "POSTDESCARGA":
 
+    if st.session_state.descargas > 0:
+        st.success(
+            f"Descarga aplicada correctamente: {st.session_state.descargas} "
+            f"descarga(s), {st.session_state.energia} J acumulados."
+        )
 
     # ----------------------------------------------
     # ROSC
@@ -1370,28 +1401,41 @@ de la circulación espontánea.
 
         icono_info()
 
-        st.error(
-            "Persiste el ritmo inicial"
-        )
-
-        st.markdown(
-            """
+        if st.session_state.descargas == 0:
+            st.warning("NO SE ACONSEJA DESCARGA")
+            st.markdown(
+                """
 <div class="warning">
-
-La reanimación debe continuar.
-
-El DEA volverá a requerir un análisis.
-
+El ritmo seleccionado no es desfibrilable en este escenario.
+Continúe RCP y siga las indicaciones del DEA.
 </div>
 """,
-            unsafe_allow_html=True
-        )
+                unsafe_allow_html=True
+            )
+        else:
+            st.error("Persiste el ritmo inicial")
+            st.markdown(
+                """
+<div class="warning">
+La descarga quedó registrada, pero el ritmo persiste.
+Continúe RCP y vuelva a analizar cuando el simulador lo indique.
+</div>
+""",
+                unsafe_allow_html=True
+            )
 
         mostrar_ecg(
             st.session_state.caso
         )
 
     st.markdown("---")
+
+    if st.session_state.resultado != "ROSC":
+        if st.button("REANALIZAR DEA Y CONTINUAR RCP"):
+            st.session_state.pagina = "SIMULACION"
+            st.session_state.conectado = True
+            st.session_state.analizado = False
+            st.rerun()
 
     if st.button(
         "VER RESUMEN"
